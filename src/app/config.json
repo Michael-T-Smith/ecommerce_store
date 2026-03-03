@@ -1,0 +1,25 @@
+{
+    "Metadata": {
+        "SEO": {
+            "title": "Lambs Florist",
+            "description": "Lamb’s Florist in Centre, Alabama offers fresh floral arrangements for weddings, funerals, and special occasions. Same-day delivery, custom designs, and local expertise."
+        }
+    }, 
+    "business": {
+        "title": "Lambs Florist",
+        "structure": {
+            "owners": [
+                "Frank",
+                "Cecillia"
+            ],
+            "employees": {
+                "active": [
+                    "Brittany Smith"
+                ],
+                "previous": [
+
+                ]
+            }
+        }
+    }
+}
