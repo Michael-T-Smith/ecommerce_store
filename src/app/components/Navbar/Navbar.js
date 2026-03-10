@@ -1,9 +1,19 @@
+// src/app/components/Navbar/Navbar.js
+//
+// Updated: account icon is now session-aware.
+// On mount, calls /api/customers/session (reads cookie server-side).
+//   - Authenticated → icon links to /account/orders, tooltip "My Account"
+//   - Guest         → icon links to /account/login,  tooltip "Sign In"
+//
+// The check is non-blocking — icon renders immediately as a link to
+// /account/login while the fetch resolves, then updates in place.
+// This avoids any layout shift or loading spinner in the navbar.
 
 "use client";
 
-import { useState }    from "react";
-import Link            from "next/link";
-import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import Link                    from "next/link";
+import { usePathname }         from "next/navigation";
 import FlowerMark                   from "@/app/components/icons/FlowerMark";
 import IconSearch                   from "@/app/components/icons/IconSearch";
 import IconUser                     from "@/app/components/icons/IconUser";
@@ -13,15 +23,34 @@ import { NAV_LINKS }                from "@/lib/data";
 import { B }                        from "@/lib/brand";
 
 export default function Navbar({ cartCount = 0, onCartClick }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen,      setMenuOpen     ] = useState(false);
+  const [accountHref,   setAccountHref  ] = useState("/account/login");
+  const [accountLabel,  setAccountLabel ] = useState("Sign In");
+  const [customerName,  setCustomerName ] = useState(null);
   const pathname = usePathname();
+
+  // Non-blocking session check — updates the account link after mount
+  useEffect(() => {
+    fetch("/api/customers/session")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.customer) {
+          setAccountHref( "/account/orders");
+          setAccountLabel("My Account");
+          setCustomerName(data.customer.name);
+        }
+      })
+      .catch(() => {
+        // Network error — default (Sign In) stays, no crash
+      });
+  }, []);
 
   return (
     <header className="bg-brand-cream border-b-[3px] border-brand-black sticky top-0 z-50">
 
       <nav className="flex items-center justify-between px-5 sm:px-10 md:px-14 py-4">
 
-        {/* Logo — always routes home */}
+        {/* Logo */}
         <Link href="/" className="flex items-center gap-3 no-underline">
           <div className="w-[44px] h-[44px] sm:w-[52px] sm:h-[52px] bg-brand-orange rounded-full border-[3px] border-brand-black flex items-center justify-center relative overflow-hidden shadow-retro-sm flex-shrink-0">
             <div
@@ -71,13 +100,23 @@ export default function Navbar({ cartCount = 0, onCartClick }) {
           <button className="hidden sm:flex bg-transparent border-none cursor-pointer p-2.5 items-center">
             <IconSearch color={B.black} />
           </button>
+
+          {/* Account icon — session-aware */}
           <Link
-            href="/account"
-            title="My Account"
-            className="bg-transparent border-none cursor-pointer p-2.5 flex items-center"
+            href={accountHref}
+            title={accountLabel}
+            className="relative bg-transparent border-none cursor-pointer p-2.5 flex items-center group"
           >
-            <IconUser color={B.black} />
+            <IconUser color={customerName ? B.orange : B.black} />
+            {/* Authenticated indicator dot */}
+            {customerName && (
+              <span
+                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border border-white"
+                style={{ background: B.orange }}
+              />
+            )}
           </Link>
+
           <button
             onClick={onCartClick}
             className="bg-brand-black text-brand-cream border-none px-3 sm:px-5 py-2.5 ml-1 sm:ml-2 font-sans font-extrabold text-[11px] sm:text-[12px] tracking-[1px] sm:tracking-[1.5px] uppercase cursor-pointer flex items-center gap-1.5 sm:gap-2"
@@ -86,6 +125,7 @@ export default function Navbar({ cartCount = 0, onCartClick }) {
             <span className="hidden sm:inline">Bag</span>
             {cartCount > 0 && `(${cartCount})`}
           </button>
+
           <button
             onClick={() => setMenuOpen((o) => !o)}
             className="md:hidden bg-transparent border-none cursor-pointer p-2.5 flex items-center ml-1"
@@ -113,12 +153,27 @@ export default function Navbar({ cartCount = 0, onCartClick }) {
               {link.label}
             </Link>
           ))}
-          <div className="pt-3 flex items-center gap-2 border-t border-brand-black/10 mt-1">
-            <IconSearch color={B.smoke} />
-            <span className="font-sans text-[12px] font-extrabold tracking-[2px] uppercase text-brand-smoke">
-              Search
-            </span>
-          </div>
+
+          {/* Account row in mobile menu */}
+          <Link
+            href={accountHref}
+            onClick={() => setMenuOpen(false)}
+            className="flex items-center justify-between py-3 border-t border-brand-black/10 mt-1 no-underline group"
+          >
+            <div className="flex items-center gap-2">
+              <IconUser color={customerName ? B.orange : B.smoke} />
+              <span
+                className="font-sans text-[12px] font-extrabold tracking-[2px] uppercase"
+                style={{ color: customerName ? B.orange : B.smoke }}
+              >
+                {customerName ? `Hi, ${customerName.split(" ")[0]}` : "Sign In"}
+              </span>
+            </div>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke={B.smoke} strokeWidth="2.5" strokeLinecap="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </Link>
         </div>
       )}
     </header>

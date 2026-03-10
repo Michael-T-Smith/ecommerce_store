@@ -1,23 +1,41 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
-import { MOCK_USERS, DEFAULT_MOCK_USER }       from "@/lib/mockSession";
 
 const SessionContext = createContext(null);
 
-export function MockSessionProvider({ children }) {
-  const [activeUser, setActiveUser] = useState(DEFAULT_MOCK_USER);
+// Dev-only role switcher accounts — UI only, no real auth effect
+const DEV_USERS = [
+  { id: "1", name: "Cecelia Bates",  email: "cecelia@lambsflorist.com", role: "admin"    },
+  { id: "2", name: "Frank Bates",    email: "frank@lambsflorist.com",   role: "manager"  },
+  { id: "3", name: "Jane Holloway",  email: "jane@lambsflorist.com",    role: "employee" },
+];
+
+export function DashboardSessionProvider({ initialUser, children }) {
+  const [user, setUser] = useState(initialUser);
+
+  const logout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/dashboard/login";
+  };
+
+  const isDev = process.env.NODE_ENV === "development";
 
   return (
-    <SessionContext.Provider value={{ user: activeUser, setUser: setActiveUser, allUsers: MOCK_USERS }}>
+    <SessionContext.Provider value={{
+      user,
+      setUser,
+      logout,
+      isDev,
+      devUsers: isDev ? DEV_USERS : [],
+    }}>
       {children}
     </SessionContext.Provider>
   );
 }
 
-// Hook — import this in any dashboard component that needs role
 export function useDashboardSession() {
   const ctx = useContext(SessionContext);
-  if (!ctx) throw new Error("useDashboardSession must be used inside MockSessionProvider");
+  if (!ctx) throw new Error("useDashboardSession must be used inside DashboardSessionProvider");
   return ctx;
 }

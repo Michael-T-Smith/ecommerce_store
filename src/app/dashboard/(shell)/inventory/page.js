@@ -9,6 +9,7 @@ import InventoryModal           from "@/app/components/dashboard/InventoryModal/
 import StatCard                 from "@/app/components/dashboard/StatCard/StatCard";
 import { INVENTORY_MOCK, INVENTORY_CATEGORIES } from "@/lib/inventoryData";
 import { B }                    from "@/lib/brand";
+import { PageSpinner, PageError } from "@/app/components/dashboard/PageStates/PageStates";
 
 export default function InventoryPage() {
   const { user }  = useDashboardSession();

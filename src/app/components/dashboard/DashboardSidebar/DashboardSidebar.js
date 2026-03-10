@@ -44,7 +44,6 @@ const NAV_SECTIONS = [
         label   : "Orders",
         href    : "/dashboard/orders",
         resource: "orders",
-        soon    : true,
         icon    : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -58,7 +57,6 @@ const NAV_SECTIONS = [
         label   : "Delivery",
         href    : "/dashboard/delivery",
         resource: "delivery",
-        soon    : true,
         icon    : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -78,7 +76,6 @@ const NAV_SECTIONS = [
         label   : "Employees",
         href    : "/dashboard/employees",
         resource: "employees",
-        soon    : true,
         icon    : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -128,6 +125,8 @@ const NAV_SECTIONS = [
 export default function DashboardSidebar() {
   const pathname = usePathname();
   const { user } = useDashboardSession();
+
+  if(!user) return null;
 
   return (
     <aside className="hidden md:flex flex-col w-[240px] flex-shrink-0 bg-brand-bark border-r-[3px] border-brand-black overflow-y-auto">

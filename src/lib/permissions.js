@@ -1,62 +1,67 @@
 
-export const ROLES = {
-  ADMIN    : "admin",
-  MANAGER  : "manager",
-  EMPLOYEE : "employee",
-};
+// Single source of truth for role-based access control.
+// Used by every dashboard page and component that has a protected action.
+// Also used by API route handlers via getRequestUser().
+//
+// canDo(role, resource, action) → boolean
+// ROLE_META[role] → { label, color }  (used for badges and UI)
 
-// Permission matrix — mirrors the DB-control spec from the project outline
+// ── Permission matrix ─────────────────────────────────────────────
+// true  = allowed
+// false = denied (or key absent = denied)
+
 const PERMISSIONS = {
-  inventory: {
-    create : [ROLES.ADMIN, ROLES.MANAGER],
-    read   : [ROLES.ADMIN, ROLES.MANAGER, ROLES.EMPLOYEE],
-    update : [ROLES.ADMIN, ROLES.MANAGER],
-    delete : [ROLES.ADMIN, ROLES.MANAGER],
+  admin: {
+    inventory : { create: true, read: true, update: true, delete: true },
+    orders    : { create: true, read: true, update: true, delete: true },
+    delivery  : { create: true, read: true, update: true, delete: true },
+    employees : { create: true, read: true, update: true, delete: true },
+    payments  : { create: true, read: true, update: true, delete: true },
+    reports   : { read: true },
   },
-  orders: {
-    create : [ROLES.ADMIN, ROLES.MANAGER],
-    read   : [ROLES.ADMIN, ROLES.MANAGER, ROLES.EMPLOYEE],
-    update : [ROLES.ADMIN, ROLES.MANAGER],
-    delete : [ROLES.ADMIN],
+  manager: {
+    inventory : { create: true, read: true, update: true, delete: true },
+    orders    : { create: true, read: true, update: true, delete: false },
+    delivery  : { create: true, read: true, update: true, delete: false },
+    employees : { create: false, read: true, update: false, delete: false },
+    payments  : { read: true },
+    reports   : { read: true },
   },
-  delivery: {
-    create : [ROLES.ADMIN, ROLES.MANAGER],
-    read   : [ROLES.ADMIN, ROLES.MANAGER, ROLES.EMPLOYEE],
-    update : [ROLES.ADMIN, ROLES.MANAGER],
-    delete : [ROLES.ADMIN],
-  },
-  employees: {
-    create : [ROLES.ADMIN],
-    read   : [ROLES.ADMIN],
-    update : [ROLES.ADMIN],
-    delete : [ROLES.ADMIN],
-  },
-  users: {
-    create : [ROLES.ADMIN],
-    read   : [ROLES.ADMIN],
-    update : [ROLES.ADMIN],
-    delete : [ROLES.ADMIN],
+  employee: {
+    inventory : { read: true },
+    orders    : { read: true },
+    delivery  : { read: true },
+    employees : {},
+    payments  : {},
+    reports   : {},
   },
 };
 
 /**
  * canDo(role, resource, action) → boolean
- * Use this everywhere in the dashboard.
- *
- * Example:
- *   canDo("manager", "inventory", "delete") → true
- *   canDo("employee", "inventory", "delete") → false
+ * @param {string} role     - "admin" | "manager" | "employee"
+ * @param {string} resource - "inventory" | "orders" | "delivery" | "employees" | "payments" | "reports"
+ * @param {string} action   - "create" | "read" | "update" | "delete"
  */
 export function canDo(role, resource, action) {
-  if (!role || !resource || !action) return false;
-  const allowed = PERMISSIONS[resource]?.[action];
-  if (!allowed) return false;
-  return allowed.includes(role);
+  return PERMISSIONS[role]?.[resource]?.[action] === true;
 }
 
-// Role display metadata — labels and colors for UI badges
+// ── Role display metadata ─────────────────────────────────────────
+// Used by DashboardTopbar, EmployeeModal, employees/page.js for
+// colored badges and role selector UI.
+
 export const ROLE_META = {
-  [ROLES.ADMIN]    : { label: "Admin",    color: "#D4511A" },
-  [ROLES.MANAGER]  : { label: "Manager",  color: "#C9A84C" },
-  [ROLES.EMPLOYEE] : { label: "Employee", color: "#7A6A58" },
+  admin: {
+    label: "Admin",
+    color: "#D4511A",   // brand orange
+  },
+  manager: {
+    label: "Manager",
+    color: "#C9A84C",   // brand gold
+  },
+  employee: {
+    label: "Employee",
+    color: "#7A6A58",   // brand smoke
+  },
 };

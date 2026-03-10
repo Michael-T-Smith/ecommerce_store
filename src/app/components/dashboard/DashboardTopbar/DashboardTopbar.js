@@ -1,12 +1,11 @@
 
 "use client";
 
-import { usePathname }           from "next/navigation";
-import { useDashboardSession }   from "@/app/dashboard/SessionContext";
-import { ROLE_META }             from "@/lib/permissions";
-import { B }                     from "@/lib/brand";
+import { usePathname }         from "next/navigation";
+import Link                    from "next/link";
+import { useDashboardSession } from "@/app/dashboard/SessionContext";
+import { ROLE_META }           from "@/lib/permissions";
 
-// Derive a readable breadcrumb from the current pathname
 function getBreadcrumb(pathname) {
   const segments = pathname.replace("/dashboard", "").split("/").filter(Boolean);
   if (segments.length === 0) return [{ label: "Dashboard", href: "/dashboard" }];
@@ -20,10 +19,13 @@ function getBreadcrumb(pathname) {
 }
 
 export default function DashboardTopbar() {
-  const pathname = usePathname();
-  const { user, setUser, allUsers } = useDashboardSession();
-  const breadcrumbs = getBreadcrumb(pathname);
-  const roleMeta    = ROLE_META[user.role];
+  const pathname                          = usePathname();
+  const { user, setUser, logout, isDev, devUsers } = useDashboardSession();
+  const breadcrumbs                       = getBreadcrumb(pathname);
+
+  if (!user) return null;
+
+  const roleMeta = ROLE_META[user.role] ?? ROLE_META.employee;
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 sm:px-8 lg:px-10 py-3.5 flex items-center justify-between gap-4 flex-shrink-0">
@@ -38,61 +40,58 @@ export default function DashboardTopbar() {
                 <polyline points="9 18 15 12 9 6" />
               </svg>
             )}
-            <span className={`font-sans text-[13px] font-extrabold tracking-[0.5px] truncate ${
-              i === breadcrumbs.length - 1
-                ? "text-brand-black"
-                : "text-brand-smoke hover:text-brand-orange cursor-pointer transition-colors"
-            }`}>
-              {crumb.label}
-            </span>
+            {i < breadcrumbs.length - 1 ? (
+              <Link href={crumb.href}
+                className="font-sans text-[13px] font-extrabold tracking-[0.5px] text-brand-smoke hover:text-brand-orange transition-colors no-underline truncate">
+                {crumb.label}
+              </Link>
+            ) : (
+              <span className="font-sans text-[13px] font-extrabold tracking-[0.5px] text-brand-black truncate">
+                {crumb.label}
+              </span>
+            )}
           </div>
         ))}
       </div>
 
-      {/* Right: role switcher + user badge */}
+      {/* Right side */}
       <div className="flex items-center gap-3 flex-shrink-0">
 
-        {/* DEV TOOL: Role switcher — remove or auth-gate before go-live */}
-        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-sm">
-          <span className="font-sans text-[9px] font-extrabold tracking-[2px] uppercase text-brand-smoke">
-            Preview as:
-          </span>
-          <select
-            value={user.id}
-            onChange={(e) => {
-              const selected = allUsers.find((u) => u.id === parseInt(e.target.value));
-              if (selected) setUser(selected);
-            }}
-            className="font-sans font-extrabold text-[11px] bg-transparent border-none outline-none cursor-pointer"
-            style={{ color: roleMeta.color }}
-          >
-            {allUsers.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name} ({u.role})
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* DEV ONLY: role switcher — only renders in development */}
+        {isDev && devUsers.length > 0 && (
+          <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-1.5">
+            <span className="font-sans text-[9px] font-extrabold tracking-[2px] uppercase text-amber-600">
+              Dev:
+            </span>
+            <select
+              value={user.id}
+              onChange={(e) => {
+                const selected = devUsers.find((u) => u.id === e.target.value);
+                if (selected) setUser(selected);
+              }}
+              className="font-sans font-extrabold text-[11px] bg-transparent border-none outline-none cursor-pointer"
+              style={{ color: roleMeta.color }}
+            >
+              {devUsers.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name} ({u.role})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Role badge */}
         <div
-          className="font-sans font-extrabold text-[10px] tracking-[2px] uppercase px-3 py-1.5 border-2"
-          style={{
-            color       : roleMeta.color,
-            borderColor : roleMeta.color,
-            background  : `${roleMeta.color}15`,
-          }}
+          className="font-sans font-extrabold text-[10px] tracking-[2px] uppercase px-3 py-1.5 border-2 hidden sm:block"
+          style={{ color: roleMeta.color, borderColor: roleMeta.color, background: `${roleMeta.color}15` }}
         >
           {roleMeta.label}
         </div>
 
         {/* View storefront */}
-        <a
-          href="/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-sans font-extrabold text-[11px] tracking-[1px] uppercase text-brand-smoke border border-gray-200 px-3 py-1.5 no-underline hover:border-brand-orange hover:text-brand-orange transition-colors flex items-center gap-1.5"
-        >
+        <a href="/" target="_blank" rel="noopener noreferrer"
+          className="font-sans font-extrabold text-[11px] tracking-[1px] uppercase text-brand-smoke border border-gray-200 px-3 py-1.5 no-underline hover:border-brand-orange hover:text-brand-orange transition-colors hidden sm:flex items-center gap-1.5">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
@@ -100,6 +99,23 @@ export default function DashboardTopbar() {
           </svg>
           Storefront
         </a>
+
+        {/* User + logout */}
+        <div className="flex items-center gap-2 border-l border-gray-200 pl-3">
+          <div className="hidden sm:block text-right">
+            <div className="font-sans font-extrabold text-[12px] text-brand-black leading-tight">{user.name}</div>
+            <div className="font-sans text-[10px] text-brand-smoke leading-tight">{user.email}</div>
+          </div>
+          <button onClick={logout} title="Sign out"
+            className="w-8 h-8 flex items-center justify-center border border-gray-200 text-brand-smoke cursor-pointer hover:border-red-300 hover:text-red-500 hover:bg-red-50 transition-colors bg-white">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        </div>
       </div>
     </header>
   );
