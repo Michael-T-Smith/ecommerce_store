@@ -1,17 +1,7 @@
-// src/app/components/Navbar/Navbar.js
-//
-// Updated: account icon is now session-aware.
-// On mount, calls /api/customers/session (reads cookie server-side).
-//   - Authenticated → icon links to /account/orders, tooltip "My Account"
-//   - Guest         → icon links to /account/login,  tooltip "Sign In"
-//
-// The check is non-blocking — icon renders immediately as a link to
-// /account/login while the fetch resolves, then updates in place.
-// This avoids any layout shift or loading spinner in the navbar.
-
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter }          from "next/navigation";
 import Link                    from "next/link";
 import { usePathname }         from "next/navigation";
 import FlowerMark                   from "@/app/components/icons/FlowerMark";
@@ -21,9 +11,16 @@ import IconBag                      from "@/app/components/icons/IconBag";
 import { IconHamburger, IconClose } from "@/app/components/icons/IconMenu";
 import { NAV_LINKS }                from "@/lib/data";
 import { B }                        from "@/lib/brand";
+import { useCart }                  from "@/app/CartContext";
 
-export default function Navbar({ cartCount = 0, onCartClick }) {
+// eslint-disable-next-line no-unused-vars
+export default function Navbar({ cartCount, onCartClick }) {
+  const { itemCount } = useCart();
+  const router = useRouter();
   const [menuOpen,      setMenuOpen     ] = useState(false);
+  const [searchOpen,    setSearchOpen   ] = useState(false);
+  const [searchQuery,   setSearchQuery  ] = useState("");
+  const searchRef = useRef(null);
   const [accountHref,   setAccountHref  ] = useState("/account/login");
   const [accountLabel,  setAccountLabel ] = useState("Sign In");
   const [customerName,  setCustomerName ] = useState(null);
@@ -97,9 +94,49 @@ export default function Navbar({ cartCount = 0, onCartClick }) {
 
         {/* Actions */}
         <div className="flex gap-1 items-center">
-          <button className="hidden sm:flex bg-transparent border-none cursor-pointer p-2.5 items-center">
-            <IconSearch color={B.black} />
-          </button>
+          {/* Search — expands inline on click */}
+          <div className="hidden sm:flex items-center relative">
+            {searchOpen && (
+              <div className="absolute right-10 top-0 flex items-center">
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && searchQuery.trim()) {
+                      router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`);
+                      setSearchOpen(false);
+                      setSearchQuery("");
+                    }
+                    if (e.key === "Escape") {
+                      setSearchOpen(false);
+                      setSearchQuery("");
+                    }
+                  }}
+                  placeholder="Search arrangements…"
+                  autoComplete="off"
+                  className="w-[220px] border-b-2 border-brand-black bg-transparent font-sans text-[12px] text-brand-black placeholder:text-brand-smoke/60 focus:outline-none px-2 py-1.5 animate-[fadeIn_0.15s_ease]"
+                />
+              </div>
+            )}
+            <button
+              onClick={() => {
+                if (searchOpen && searchQuery.trim()) {
+                  router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`);
+                  setSearchOpen(false);
+                  setSearchQuery("");
+                } else {
+                  setSearchOpen((o) => !o);
+                  if (!searchOpen) setTimeout(() => searchRef.current?.focus(), 50);
+                }
+              }}
+              className="bg-transparent border-none cursor-pointer p-2.5 flex items-center"
+              aria-label="Search"
+            >
+              <IconSearch color={searchOpen ? B.orange : B.black} />
+            </button>
+          </div>
 
           {/* Account icon — session-aware */}
           <Link
@@ -117,14 +154,19 @@ export default function Navbar({ cartCount = 0, onCartClick }) {
             )}
           </Link>
 
-          <button
-            onClick={onCartClick}
-            className="bg-brand-black text-brand-cream border-none px-3 sm:px-5 py-2.5 ml-1 sm:ml-2 font-sans font-extrabold text-[11px] sm:text-[12px] tracking-[1px] sm:tracking-[1.5px] uppercase cursor-pointer flex items-center gap-1.5 sm:gap-2"
+          {/* Bag — links to /bag page, count from CartContext */}
+          <Link
+            href="/bag"
+            className="bg-brand-black text-brand-cream border-none px-3 sm:px-5 py-2.5 ml-1 sm:ml-2 font-sans font-extrabold text-[11px] sm:text-[12px] tracking-[1px] sm:tracking-[1.5px] uppercase cursor-pointer flex items-center gap-1.5 sm:gap-2 no-underline hover:bg-brand-orange transition-colors duration-150"
           >
             <IconBag color={B.cream} />
             <span className="hidden sm:inline">Bag</span>
-            {cartCount > 0 && `(${cartCount})`}
-          </button>
+            {itemCount > 0 && (
+              <span className="bg-brand-orange text-brand-cream text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center leading-none border border-brand-cream/40">
+                {itemCount > 9 ? "9+" : itemCount}
+              </span>
+            )}
+          </Link>
 
           <button
             onClick={() => setMenuOpen((o) => !o)}
@@ -153,6 +195,20 @@ export default function Navbar({ cartCount = 0, onCartClick }) {
               {link.label}
             </Link>
           ))}
+
+          {/* Bag row in mobile menu */}
+          <Link
+            href="/bag"
+            onClick={() => setMenuOpen(false)}
+            className="flex items-center justify-between py-3 border-b border-brand-black/10 no-underline"
+          >
+            <div className="flex items-center gap-2">
+              <IconBag color={B.smoke} />
+              <span className="font-sans text-[12px] font-extrabold tracking-[2px] uppercase text-brand-smoke">
+                Bag {itemCount > 0 && `(${itemCount})`}
+              </span>
+            </div>
+          </Link>
 
           {/* Account row in mobile menu */}
           <Link

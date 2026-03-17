@@ -1,24 +1,18 @@
-// middleware.js  (PROJECT ROOT)
+// middleware.js  (project root)
 //
-// Auth guard for protected routes. Runs at the Edge (jose only — no jsonwebtoken).
+// Edge runtime — runs before every matched request.
 //
-// WHAT THIS DOES:
-//   - /dashboard/*  → verifies "lambs_session" cookie → stamps x-user-* REQUEST
-//                     headers for staff server components and API route handlers
-//   - /account/*    → verifies "lambs_customer" cookie → redirects to login if absent
+// ROLES:
+//   /dashboard(.*)  — redirect to login if lambs_session cookie is absent.
+//                     The (shell)/layout.js does full JWT verification server-side.
+//   /api(.*)        — if lambs_session is present and valid, stamp x-user-*
+//                     request headers so API route handlers can call getRequestUser().
+//   /account(.*)    — redirect to login if lambs_customer cookie is absent.
 //
-// WHAT THIS DOES NOT DO:
-//   - /api/customers/* routes read identity via getCustomerSession() directly
-//     from the cookie — they do NOT depend on x-customer-* headers from here.
-//     This is simpler and more reliable than header propagation.
-//
-// Public bypasses (never intercepted):
-//   /dashboard/login
-//   /account/login
-//
-// Dev bypass:
-//   SKIP_AUTH=true in .env.local — injects fake staff headers, skips customer guard.
-//   Set to false before go-live.
+// IMPORTANT — matcher uses (.*) not :path*
+// :path* in Next.js path-to-regexp requires at least one path segment after
+// the base, so /dashboard (no trailing path) would not be matched and
+// middleware would be skipped entirely. (.*) matches zero or more characters.
 
 import { NextResponse } from "next/server";
 import { jwtVerify }    from "jose";
@@ -27,15 +21,15 @@ const STAFF_COOKIE    = "lambs_session";
 const CUSTOMER_COOKIE = "lambs_customer";
 
 function getSecret() {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error("JWT_SECRET is not defined");
-  return new TextEncoder().encode(secret);
+  const s = process.env.JWT_SECRET;
+  if (!s) throw new Error("JWT_SECRET is not defined in .env.local");
+  return new TextEncoder().encode(s);
 }
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  // ── Public bypasses ───────────────────────────────────────────
+  // ── Always allow login pages through ────────────────────────────
   if (
     pathname.startsWith("/dashboard/login") ||
     pathname.startsWith("/account/login")
@@ -43,71 +37,56 @@ export async function middleware(request) {
     return NextResponse.next();
   }
 
-  // ── Dev bypass ────────────────────────────────────────────────
-  if (process.env.SKIP_AUTH === "true") {
-    const requestHeaders = new Headers(request.headers);
-    if (pathname.startsWith("/dashboard")) {
-      requestHeaders.set("x-user-id",    "1");
-      requestHeaders.set("x-user-role",  "admin");
-      requestHeaders.set("x-user-name",  "Dev Admin");
-      requestHeaders.set("x-user-email", "cecelia@lambsflorist.com");
+  // ── /api/* — stamp x-user-* headers if staff cookie is valid ────
+  // No hard redirect — API routes that require a logged-in staff member
+  // use canDo() and return 403 themselves. Public API routes work for all.
+  if (pathname.startsWith("/api/")) {
+    const token = request.cookies.get(STAFF_COOKIE)?.value;
+    if (token) {
+      try {
+        const { payload } = await jwtVerify(token, getSecret());
+        const headers = new Headers(request.headers);
+        headers.set("x-user-id",    String(payload.id));
+        headers.set("x-user-role",  String(payload.role));
+        headers.set("x-user-name",  String(payload.name));
+        headers.set("x-user-email", String(payload.email));
+        return NextResponse.next({ request: { headers } });
+      } catch {
+        // Expired or tampered token — clear it, proceed without headers
+        const res = NextResponse.next();
+        res.cookies.delete(STAFF_COOKIE);
+        return res;
+      }
     }
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    return NextResponse.next();
   }
 
-  // ── Dashboard auth ────────────────────────────────────────────
-  // Stamps x-user-* onto the REQUEST so dashboard server components
-  // and route handlers can read role/identity from headers().
+  // ── /dashboard/* — cookie presence check ────────────────────────
+  // Full JWT verification happens in (shell)/layout.js via getSession().
+  // Middleware just gates on cookie existence so unauthenticated browsers
+  // are redirected immediately without hitting server components.
   if (pathname.startsWith("/dashboard")) {
+    console.log('middleware.js Running at /dashboard route')
     const token = request.cookies.get(STAFF_COOKIE)?.value;
-
     if (!token) {
       const url = new URL("/dashboard/login", request.url);
       url.searchParams.set("redirect", pathname);
       return NextResponse.redirect(url);
     }
-
-    try {
-      const { payload }    = await jwtVerify(token, getSecret());
-      const requestHeaders = new Headers(request.headers);
-      requestHeaders.set("x-user-id",    String(payload.id));
-      requestHeaders.set("x-user-role",  String(payload.role));
-      requestHeaders.set("x-user-name",  String(payload.name));
-      requestHeaders.set("x-user-email", String(payload.email));
-      return NextResponse.next({ request: { headers: requestHeaders } });
-    } catch {
-      const url = new URL("/dashboard/login", request.url);
-      url.searchParams.set("reason", "session_expired");
-      const res = NextResponse.redirect(url);
-      res.cookies.delete(STAFF_COOKIE);
-      return res;
-    }
+    // Cookie exists — let the request through.
+    // getSession() in the layout will verify the JWT and redirect if invalid.
+    return NextResponse.next();
   }
 
-  // ── Customer account guard ────────────────────────────────────
-  // Fast-path redirect for unauthenticated users hitting /account/*.
-  // The portal layout (portal)/layout.js ALSO verifies the session
-  // directly via getCustomerSession() — this guard just saves a round
-  // trip for users who have no cookie at all.
+  // ── /account/* — cookie presence check ──────────────────────────
   if (pathname.startsWith("/account")) {
     const token = request.cookies.get(CUSTOMER_COOKIE)?.value;
-
     if (!token) {
       const url = new URL("/account/login", request.url);
       url.searchParams.set("redirect", pathname);
       return NextResponse.redirect(url);
     }
-
-    try {
-      await jwtVerify(token, getSecret());
-      return NextResponse.next();
-    } catch {
-      const url = new URL("/account/login", request.url);
-      url.searchParams.set("reason", "session_expired");
-      const res = NextResponse.redirect(url);
-      res.cookies.delete(CUSTOMER_COOKIE);
-      return res;
-    }
+    return NextResponse.next();
   }
 
   return NextResponse.next();
@@ -115,7 +94,8 @@ export async function middleware(request) {
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/account/:path*",
+    "/dashboard(.*)",
+    "/account(.*)",
+    "/api(.*)",
   ],
 };

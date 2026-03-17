@@ -28,7 +28,6 @@ export async function GET() {
     if (profileRes.rowCount === 0) {
       return NextResponse.json({ error: "Customer not found." }, { status: 404 });
     }
-
     return ok({ ...profileRes.rows[0], addresses: addressRes.rows });
   } catch (err) {
     return serverError(err, "GET /api/customers/me");
@@ -104,7 +103,6 @@ export async function PATCH(request) {
        RETURNING id, name, email, phone, created_at`,
       values
     );
-
     return ok(result.rows[0]);
   } catch (err) {
     if (err.code === "23505") return badRequest("That email address is already in use.");

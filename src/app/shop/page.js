@@ -1,7 +1,7 @@
-
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import AnnouncementBar  from "@/app/components/AnnouncementBar/AnnouncementBar";
 import Navbar           from "@/app/components/Navbar/Navbar";
 import ShopBanner       from "@/app/components/ShopBanner/ShopBanner";
@@ -12,15 +12,23 @@ import Footer           from "@/app/components/Footer/Footer";
 import { CATALOG, CATALOG_CATEGORIES } from "@/lib/data";
 
 export default function ShopPage() {
-  const [cartCount,      setCartCount     ] = useState(0);
+  const searchParams = useSearchParams();
   const [activeCategory, setActiveCategory] = useState("All");
   const [sortBy,         setSortBy        ] = useState("default");
   const [searchQuery,    setSearchQuery   ] = useState("");
   const [inStockOnly,    setInStockOnly   ] = useState(false);
 
-  const addToCart = (item) => setCartCount((c) => c + 1);
+  // Seed search query from Navbar ?q= param
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) setSearchQuery(decodeURIComponent(q));
+  }, [searchParams]);
 
-  // All filtering and sorting derived from state — no useEffect needed
+    useEffect(() => {
+    const cate = searchParams.get("category");
+    if (cate) setActiveCategory(cate);
+  }, [searchParams]);
+
   const filteredItems = useMemo(() => {
     let result = [...CATALOG];
 
@@ -40,15 +48,9 @@ export default function ShopPage() {
       );
     }
     switch (sortBy) {
-      case "price-asc":  
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case "price-desc": 
-        result.sort((a, b) => b.price - a.price);                   
-        break;
-      case "name-asc":
-        result.sort((a, b) => a.name.localeCompare(b.name));
-        break;
+      case "price-asc":  result.sort((a, b) => a.price - b.price);           break;
+      case "price-desc": result.sort((a, b) => b.price - a.price);           break;
+      case "name-asc":   result.sort((a, b) => a.name.localeCompare(b.name)); break;
       default: break;
     }
 
@@ -58,7 +60,7 @@ export default function ShopPage() {
   return (
     <div className="font-serif bg-brand-cream min-h-screen overflow-x-hidden">
       <AnnouncementBar />
-      <Navbar cartCount={cartCount} onCartClick={() => setCartCount((c) => c + 1)} />
+      <Navbar />
 
       <ShopBanner
         title="Shop"
@@ -79,7 +81,7 @@ export default function ShopPage() {
       />
 
       <main className="px-5 sm:px-10 lg:px-16 py-10 sm:py-14">
-        <ShopGrid items={filteredItems} onAddToCart={addToCart} />
+        <ShopGrid items={filteredItems} />
       </main>
 
       <PromoBand />

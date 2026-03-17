@@ -1,82 +1,157 @@
-
 "use client";
 
-import { useState }  from "react";
-import { FEATURED }  from "@/lib/data";
-import { B }         from "@/lib/brand";
-import FlowerMark    from "@/app/components/icons/FlowerMark";
+import { useState }          from "react";
+import Link                  from "next/link";
+import { FEATURED, CATALOG } from "@/lib/data";
+import { useCart }           from "@/app/CartContext";
+import { B }                 from "@/lib/brand";
+import FlowerMark            from "@/app/components/icons/FlowerMark";
+import ProductCardActions    from "@/app/components/ProductCardActions/ProductCardActions";
 
-export default function FeaturedArrangements({ onAddToCart }) {
-  const [hovered, setHovered] = useState(null);
+const FEATURED_FULL = FEATURED.map((f) => ({
+  ...CATALOG.find((c) => c.id === f.id),
+  accent: f.accent,
+  tag   : f.tag,
+})).filter(Boolean);
+
+export default function FeaturedArrangements() {
+  const { addItem, items: cartItems } = useCart();
+  const [pickerOpen, setPickerOpen] = useState({});
+
+  const togglePicker = (id) =>
+    setPickerOpen((p) => ({ ...p, [id]: !p[id] }));
+
+  const totalQtyFor = (id) =>
+    cartItems.filter((c) => c.id === id).reduce((s, c) => s + c.qty, 0);
+
+  const qtyForSize = (id, size) =>
+    cartItems.find((c) => c.id === id && c.size === size)?.qty ?? 0;
 
   return (
-    <section className="px-5 sm:px-10 lg:px-16 py-16 sm:py-20 lg:py-24 bg-brand-cream">
+    <section className="px-5 sm:px-10 lg:px-16 py-20 sm:py-28 bg-brand-cream">
 
-      {/* Section header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-10 sm:mb-[52px]">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12 max-w-[1200px] mx-auto">
         <div>
-          <div className="flex items-center gap-2 font-sans text-[10px] font-extrabold tracking-[4px] text-brand-orange uppercase mb-3">
+          <div className="flex items-center gap-2 mb-3">
             <FlowerMark size={16} fill={B.orange} stroke={B.orange} />
-            This Week&apos;s Picks
+            <span className="font-sans font-extrabold text-[10px] tracking-[4px] uppercase text-brand-orange">
+              This Week&apos;s Picks
+            </span>
           </div>
-          <h2 className="font-serif text-[38px] sm:text-[48px] lg:text-[52px] font-black text-brand-black tracking-[-2px] leading-[1.05] m-0">
-            Featured<br />Arrangements
+          <h2 className="font-serif font-black text-brand-black text-[36px] sm:text-[52px] tracking-[-2px] leading-[1.05] m-0">
+            Featured<br className="sm:hidden" /> Arrangements
           </h2>
         </div>
-        <a
-          href="#"
-          className="font-sans font-extrabold text-[12px] tracking-[2px] text-brand-black no-underline border-b-[3px] border-brand-orange pb-0.5 uppercase self-start sm:self-auto"
+        <Link
+          href="/shop"
+          className="font-sans font-extrabold text-[11px] tracking-[2px] uppercase text-brand-black no-underline border-b-[3px] border-brand-orange pb-0.5 hover:text-brand-orange transition-colors self-start sm:self-auto mb-1"
         >
           View All →
-        </a>
+        </Link>
       </div>
 
-      {/* Product grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-7">
-        {FEATURED.map((item, i) => (
-          <div
-            key={item.name}
-            onMouseEnter={() => setHovered(i)}
-            onMouseLeave={() => setHovered(null)}
-            className={`bg-brand-cream border-[3px] border-brand-black overflow-hidden cursor-pointer transition-all duration-[180ms] ${
-              hovered === i ? "-translate-y-2 shadow-retro-xl" : "shadow-retro-md"
-            }`}
-          >
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-[1200px] mx-auto">
+        {FEATURED_FULL.map((item) => {
+          const multiSize = item.sizes?.length > 1;
+          const isOpen    = !!pickerOpen[item.id];
+          const totalQty  = totalQtyFor(item.id);
+          const inCart    = totalQty > 0;
+
+          return (
             <div
-              className="h-[220px] sm:h-[260px] lg:h-[280px] flex items-center justify-center relative overflow-hidden"
-              style={{ background: item.accent }}
+              key={item.id}
+              className="bg-brand-cream border-[3px] border-brand-black overflow-hidden group hover:-translate-y-2 hover:shadow-retro-xl shadow-retro-sm transition-all duration-[180ms]"
             >
+              {/* Hero image */}
               <div
-                className="absolute inset-0"
-                style={{
-                  background: `repeating-linear-gradient(-55deg,
-                    transparent 0, transparent 24px,
-                    rgba(255,255,255,0.07) 24px, rgba(255,255,255,0.07) 28px)`,
-                }}
-              />
-              <span className="text-[72px] sm:text-[88px] z-[1] leading-none">{item.emoji}</span>
-              <div className="absolute top-4 left-0 bg-brand-black text-brand-cream font-sans font-extrabold text-[9px] sm:text-[10px] tracking-[2px] uppercase px-3 py-1.5 border-r-[3px] border-brand-orange">
-                {item.tag}
-              </div>
-            </div>
-            <div className="p-4 sm:p-6">
-              <div className="font-serif text-base sm:text-lg font-bold text-brand-black mb-3">
-                {item.name}
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="font-sans font-black text-[20px] sm:text-[24px] text-brand-orange">
-                  {item.price}
+                className="h-[260px] sm:h-[300px] flex items-center justify-center relative overflow-hidden"
+                style={{ background: item.accent }}
+              >
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: `repeating-linear-gradient(-55deg,
+                      transparent 0, transparent 24px,
+                      rgba(255,255,255,0.07) 24px, rgba(255,255,255,0.07) 28px)`,
+                  }}
+                />
+                <span className="text-[88px] z-[1] leading-none transition-transform duration-200 group-hover:scale-110">
+                  {item.emoji}
                 </span>
-                <button
-                  onClick={() => onAddToCart()}
-                  className="bg-brand-black text-brand-cream border-none px-4 sm:px-5 py-2 sm:py-2.5 font-sans font-extrabold text-[10px] sm:text-[11px] tracking-[2px] uppercase cursor-pointer"
-                >
-                  Add to Bag
-                </button>
+
+                {inCart && (
+                  <div className="absolute top-4 left-0 bg-brand-orange text-brand-cream font-sans font-extrabold text-[10px] tracking-[2px] uppercase px-4 py-1.5 border-r-[3px] border-brand-black z-[2] flex items-center gap-2">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    In Bag · {totalQty}
+                  </div>
+                )}
+                {item.tag && !inCart && (
+                  <div className="absolute top-4 left-0 bg-brand-black text-brand-cream font-sans font-extrabold text-[10px] tracking-[2px] uppercase px-4 py-1.5 border-r-[3px] border-brand-orange z-[2]">
+                    {item.tag}
+                  </div>
+                )}
+              </div>
+
+              {/* Card body */}
+              <div className="p-6">
+                <div className="font-serif text-[18px] font-bold text-brand-black leading-tight mb-2">
+                  {item.name}
+                </div>
+                {item.description && (
+                  <p className="font-sans text-[12px] text-brand-smoke leading-relaxed mb-4 line-clamp-2">
+                    {item.description}
+                  </p>
+                )}
+
+                {/* Size picker — no !inCart guard */}
+                {isOpen && multiSize && (
+                  <div className="mb-4 pt-3 border-t border-brand-black/10 flex flex-wrap gap-2">
+                    <span className="font-sans text-[9px] font-extrabold tracking-[1px] uppercase text-brand-smoke w-full mb-0.5">
+                      {inCart ? "Add size:" : "Select size:"}
+                    </span>
+                    {item.sizes.map((size) => {
+                      const sizeQty = qtyForSize(item.id, size);
+                      return (
+                        <button
+                          key={size}
+                          onClick={() => addItem(item, size)}
+                          className={`font-sans text-[10px] font-extrabold tracking-[1px] uppercase px-3 py-2 border-[2px] cursor-pointer transition-colors ${
+                            sizeQty > 0
+                              ? "border-brand-orange bg-brand-orange text-brand-cream hover:bg-brand-black hover:border-brand-black"
+                              : "border-brand-black bg-brand-cream text-brand-black hover:bg-brand-black hover:text-brand-cream"
+                          }`}
+                        >
+                          {size}{sizeQty > 0 ? ` ×${sizeQty}` : ""}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <span className="font-sans font-black text-[24px] text-brand-orange">
+                    ${item.price}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/shop/${item.id}`}
+                      className="font-sans font-extrabold text-[10px] tracking-[1.5px] uppercase text-brand-black border-[2px] border-brand-black px-4 py-2.5 no-underline hover:bg-brand-black hover:text-brand-cream transition-colors"
+                    >
+                      View
+                    </Link>
+                    <ProductCardActions
+                      product={item}
+                      isPickerOpen={isOpen}
+                      onTogglePicker={() => togglePicker(item.id)}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
