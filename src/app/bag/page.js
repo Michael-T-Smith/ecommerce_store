@@ -8,6 +8,7 @@ import Navbar          from "@/app/components/Navbar/Navbar";
 import Footer          from "@/app/components/Footer/Footer";
 import { useCart }     from "@/app/CartContext";
 import { B }           from "@/lib/brand";
+import Image from "next/image";
 
 // ── Qty stepper ──────────────────────────────────────────────────────────────
 function QtyStepper({ qty, onDecrement, onIncrement }) {
@@ -168,7 +169,7 @@ export default function BagPage() {
                             #F0E8DE`,
                         }}
                       >
-                        {item.emoji}
+                        {item.image_path ? <Image src={item.image_path} alt={item.emoji} style={{display:"flex", justifyContent: "center", alignItems: "center"}} height={175} width={175}  /> : item.emoji}
                       </div>
                       <div>
                         <div className="font-serif font-bold text-brand-black text-[16px] leading-tight mb-1">

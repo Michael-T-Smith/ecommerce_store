@@ -4,6 +4,7 @@ import { useState }       from "react";
 import Link               from "next/link";
 import { useCart }        from "@/app/CartContext";
 import ProductCardActions from "@/app/components/ProductCardActions/ProductCardActions";
+import Image from "next/image";
 
 export default function ShopGrid({ items }) {
   const { addItem, items: cartItems } = useCart();
@@ -65,7 +66,7 @@ export default function ShopGrid({ items }) {
                   !item.inStock ? "opacity-40 grayscale" : ""
                 }`}
               >
-                {item.emoji}
+                  {item.image_path ? <Image src={item.image_path} alt={item.emoji} style={{display:"flex", justifyContent: "center", alignItems: "center"}} height={175} width={175}  /> : item.emoji}
               </span>
 
               {/* In Bag badge */}

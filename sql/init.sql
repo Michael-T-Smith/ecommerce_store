@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS inventory (
   tag                  VARCHAR(40),
   emoji                VARCHAR(8),
   sizes                TEXT[]        NOT NULL DEFAULT ARRAY['Standard'],
+  sizes_multipler      INTEGER[]     NOT NULL DEFAULT ARRAY[1],
   supplier             VARCHAR(120),
   stock_count          INTEGER       NOT NULL DEFAULT 0 CHECK (stock_count >= 0),
   low_stock_threshold  INTEGER       NOT NULL DEFAULT 2 CHECK (low_stock_threshold >= 0),
@@ -223,112 +224,230 @@ CREATE INDEX IF NOT EXISTS idx_deliveries_driver  ON deliveries(driver_id);
 CREATE INDEX IF NOT EXISTS idx_deliveries_order   ON deliveries(order_id);
 
 
+-- ── customers ────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS customers (
+  id             SERIAL        PRIMARY KEY,
+  name           VARCHAR(120)  NOT NULL,
+  email          VARCHAR(200)  NOT NULL UNIQUE,
+  phone          VARCHAR(20),
+  password_hash  TEXT          NOT NULL,
+  created_at     TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+DROP TRIGGER IF EXISTS customers_updated_at ON customers;
+CREATE TRIGGER customers_updated_at
+  BEFORE UPDATE ON customers
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
+
+
+-- ── customer_addresses ───────────────────────────────────────────
+-- zone is nullable — auto-detected during checkout but can be
+-- stored here once confirmed so repeat orders skip the lookup.
+
+CREATE TABLE IF NOT EXISTS customer_addresses (
+  id            SERIAL        PRIMARY KEY,
+  customer_id   INTEGER       NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  label         VARCHAR(60)   NOT NULL DEFAULT 'Home',
+  address_line  TEXT          NOT NULL,
+  city          VARCHAR(100)  NOT NULL,
+  state         VARCHAR(50)   NOT NULL DEFAULT 'AL',
+  zip           VARCHAR(20)   NOT NULL,
+  zone          delivery_zone,
+  is_default    BOOLEAN       NOT NULL DEFAULT FALSE,
+  created_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+DROP TRIGGER IF EXISTS customer_addresses_updated_at ON customer_addresses;
+CREATE TRIGGER customer_addresses_updated_at
+  BEFORE UPDATE ON customer_addresses
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE INDEX IF NOT EXISTS idx_addresses_customer ON customer_addresses(customer_id);
+
+
+-- ── orders: add customer_id FK ───────────────────────────────────
+-- Nullable — guest orders have no customer_id.
+-- ON DELETE SET NULL — if a customer deletes their account,
+-- their order history is preserved anonymously.
+
+ALTER TABLE orders
+  ADD COLUMN IF NOT EXISTS customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
 
 
 
+BEGIN;
 
--- ─────────────────────────────────────────────────────────────────────────────
---  SEED: inventory
---  Matches INVENTORY_MOCK in src/lib/inventoryData.js exactly.
---  ON CONFLICT DO NOTHING — safe to re-run.
--- ─────────────────────────────────────────────────────────────────────────────
+-- ── 1. Add image_path to inventory ──────────────────────────────────────────
+ALTER TABLE inventory
+  ADD COLUMN IF NOT EXISTS image_path VARCHAR(255);
 
-INSERT INTO inventory
-  (sku, name, description, price, cost_price, category, tag, emoji,
-   sizes, supplier, stock_count, low_stock_threshold, in_stock)
-VALUES
-  ('BQ-001', 'Classic Red Roses',
-   'A timeless dozen long-stemmed red roses, hand-tied with eucalyptus and wrapped in kraft paper.',
-   52, 18, 'Bouquets', 'Popular', '🌹',
-   ARRAY['Small','Standard','Large'], 'Piedmont Valley Growers', 12, 3, true),
+-- ── 2. inventory_variants ────────────────────────────────────────────────────
+--  Each variant is one purchasable SKU of a product (e.g. "Small", "Large",
+--  or any custom name the owner creates like "With Ceramic Vase").
+--  Price is the absolute sale price for that variant, not an adjustment.
 
-  ('BQ-002', 'Sunflower Bundle',
-   'Cheerful sunflowers bundled with seasonal greenery — a ray of sunshine for any occasion.',
-   38, 12, 'Bouquets', NULL, '🌻',
-   ARRAY['Standard','Large'], 'Piedmont Valley Growers', 8, 2, true),
+CREATE TABLE IF NOT EXISTS inventory_variants (
+  id            SERIAL        PRIMARY KEY,
+  inventory_id  INTEGER       NOT NULL REFERENCES inventory(id) ON DELETE CASCADE,
+  name          VARCHAR(100)  NOT NULL,                    -- "Standard", "Large", custom
+  price         NUMERIC(10,2) NOT NULL CHECK (price >= 0),
+  cost_price    NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (cost_price >= 0),
+  display_order INTEGER       NOT NULL DEFAULT 0,          -- controls UI sort order
+  is_default    BOOLEAN       NOT NULL DEFAULT FALSE,      -- pre-selected in UI
+  created_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  UNIQUE (inventory_id, name)
+);
 
-  ('BQ-003', 'Wildflower Mix',
-   'A loose, garden-gathered mix of seasonal wildflowers. No two are ever alike.',
-   44, 14, 'Bouquets', 'New', '💐',
-   ARRAY['Small','Standard','Large'], 'Blue Ridge Blooms', 6, 2, true),
+DROP TRIGGER IF EXISTS inventory_variants_updated_at ON inventory_variants;
+CREATE TRIGGER inventory_variants_updated_at
+  BEFORE UPDATE ON inventory_variants
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-  ('BQ-004', 'Lavender Stems',
-   'Fresh lavender stems bundled and tied with twine. Fragrant, calming, beautiful.',
-   36, 10, 'Bouquets', NULL, '💜',
-   ARRAY['Standard'], 'Blue Ridge Blooms', 15, 3, true),
+CREATE INDEX IF NOT EXISTS idx_variants_inventory_id ON inventory_variants(inventory_id);
 
-  ('AR-001', 'Tropical Paradise',
-   'Birds of paradise, anthuriums, and tropical foliage arranged in a ceramic vessel.',
-   68, 26, 'Arrangements', 'Bestseller', '🌺',
-   ARRAY['Standard','Large'], 'Gulf Coast Tropicals', 5, 2, true),
+-- ── 3. inventory_stock ───────────────────────────────────────────────────────
+--  Stock is tracked per variant per location.
+--  Locations: 'piedmont' | 'anniston'
 
-  ('AR-002', 'Garden Centerpiece',
-   'A lush, low centerpiece of garden roses, ranunculus, and soft greenery. Perfect for tables.',
-   85, 32, 'Arrangements', NULL, '🌸',
-   ARRAY['Standard','Large','XL'], 'Piedmont Valley Growers', 3, 2, true),
+CREATE TABLE IF NOT EXISTS inventory_stock (
+  id                  SERIAL  PRIMARY KEY,
+  variant_id          INTEGER NOT NULL REFERENCES inventory_variants(id) ON DELETE CASCADE,
+  location            VARCHAR(50) NOT NULL
+                        CHECK (location IN ('piedmont', 'anniston')),
+  stock_count         INTEGER NOT NULL DEFAULT 0 CHECK (stock_count >= 0),
+  low_stock_threshold INTEGER NOT NULL DEFAULT 2,
+  in_stock            BOOLEAN NOT NULL DEFAULT TRUE,
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (variant_id, location)
+);
 
-  ('AR-003', 'Rustic Wildflower Vase',
-   'Dahlias, cosmos, and seasonal blooms in a mason jar — relaxed, warm, and inviting.',
-   57, 20, 'Arrangements', NULL, '🌼',
-   ARRAY['Small','Standard'], 'Blue Ridge Blooms', 7, 2, true),
+CREATE INDEX IF NOT EXISTS idx_stock_variant_id ON inventory_stock(variant_id);
+CREATE INDEX IF NOT EXISTS idx_stock_location   ON inventory_stock(location);
 
-  ('PL-001', 'Succulent Collection',
-   'A curated set of three succulents in coordinating terra cotta pots. Low maintenance, long lasting.',
-   42, 15, 'Plants', 'Popular', '🪴',
-   ARRAY['Standard'], 'Desert Roots Nursery', 10, 3, true),
+DROP TRIGGER IF EXISTS inventory_stock_updated_at ON inventory_stock;
+CREATE TRIGGER inventory_stock_updated_at
+  BEFORE UPDATE ON inventory_stock
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-  ('PL-002', 'Peace Lily',
-   'A classic peace lily in a nursery pot. Air purifying, shade tolerant, and easy to care for.',
-   35, 11, 'Plants', NULL, '🌿',
-   ARRAY['Small','Standard','Large'], 'Desert Roots Nursery', 9, 3, true),
+-- ── 4. Migrate existing inventory → variants ─────────────────────────────────
+--  For each product, expand sizes[] into one row per variant.
+--  Pricing formula:
+--    Small    = base × 0.80
+--    Standard = base × 1.00
+--    Large    = base × 1.25
+--    XL       = base × 1.60
+--  is_default = true for 'Standard', or the first size if Standard absent.
 
-  ('PL-003', 'Orchid Duo',
-   'Two phalaenopsis orchids in coordinating ceramic pots. Elegant and long-blooming.',
-   65, 28, 'Plants', 'New', '🌷',
-   ARRAY['Standard'], 'Gulf Coast Tropicals', 0, 2, false),
+INSERT INTO inventory_variants
+  (inventory_id, name, price, cost_price, display_order, is_default)
+SELECT
+  i.id,
+  sv.size_name,
+  ROUND(
+    i.price * CASE sv.size_name
+      WHEN 'Small'    THEN 0.80
+      WHEN 'Standard' THEN 1.00
+      WHEN 'Large'    THEN 1.25
+      WHEN 'XL'       THEN 1.60
+      ELSE                 1.00
+    END,
+    2
+  ),
+  ROUND(
+    i.cost_price * CASE sv.size_name
+      WHEN 'Small'    THEN 0.80
+      WHEN 'Standard' THEN 1.00
+      WHEN 'Large'    THEN 1.25
+      WHEN 'XL'       THEN 1.60
+      ELSE                 1.00
+    END,
+    2
+  ),
+  sv.ord,
+  -- is_default: Standard if present, otherwise first variant
+  (sv.size_name = 'Standard') OR
+  (NOT 'Standard' = ANY(i.sizes) AND sv.ord = 1)
+FROM inventory i
+CROSS JOIN LATERAL (
+  SELECT
+    unnest(i.sizes)                AS size_name,
+    generate_subscripts(i.sizes, 1) AS ord
+) sv
+ON CONFLICT (inventory_id, name) DO NOTHING;
 
-  ('SE-001', 'Autumn Wreath',
-   'Hand-crafted dried wreath with preserved oak leaves, seed pods, and cotton stems.',
-   78, 30, 'Seasonal', 'Seasonal', '🍂',
-   ARRAY['Standard','Large'], 'Appalachian Dried Goods', 4, 2, true),
+-- ── 5. Seed stock per variant per location ───────────────────────────────────
+--  Piedmont gets the existing stock_count from the main inventory row.
+--  Anniston starts at 0 — owner fills in actual counts via dashboard.
 
-  ('SE-002', 'Holiday Poinsettia',
-   'Classic red poinsettia in a foil-wrapped pot. A holiday staple for home or gifting.',
-   32, 10, 'Seasonal', 'Seasonal', '🎄',
-   ARRAY['Small','Standard','Large'], 'Piedmont Valley Growers', 22, 5, true),
+INSERT INTO inventory_stock
+  (variant_id, location, stock_count, low_stock_threshold, in_stock)
+SELECT
+  v.id,
+  loc.location,
+  -- Distribute existing stock_count to piedmont; anniston starts at 0
+  CASE WHEN loc.location = 'piedmont' THEN
+    CASE
+      -- For single-size products give the full stock to that variant
+      WHEN array_length(i.sizes, 1) = 1 THEN i.stock_count
+      -- For multi-size split evenly, floor — owner adjusts from dashboard
+      ELSE i.stock_count / array_length(i.sizes, 1)
+    END
+  ELSE 0 END,
+  i.low_stock_threshold,
+  CASE
+    WHEN loc.location = 'piedmont' THEN i.in_stock
+    ELSE FALSE
+  END
+FROM inventory_variants v
+JOIN inventory i ON i.id = v.inventory_id
+CROSS JOIN (VALUES ('piedmont'), ('anniston')) AS loc(location)
+ON CONFLICT (variant_id, location) DO NOTHING;
 
-  ('SE-003', 'Spring Tulip Bunch',
-   'A hand-tied bunch of mixed tulips in seasonal colors. Fresh from our growers weekly.',
-   40, 13, 'Seasonal', NULL, '🌷',
-   ARRAY['Standard','Large'], 'Blue Ridge Blooms', 11, 3, true),
+-- ── 6. Trigger: stock_count = 0 → in_stock flips false (main inventory) ─────
 
-  ('GF-001', 'Gift Basket — Blooms',
-   'A wicker basket filled with a small arrangement, chocolates, and a handwritten card.',
-   90, 38, 'Gifts', 'Popular', '🎁',
-   ARRAY['Standard','Large'], 'In-house', 5, 2, true),
+CREATE OR REPLACE FUNCTION fn_sync_in_stock_from_count()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.stock_count = 0 THEN
+    NEW.in_stock := FALSE;
+  ELSIF NEW.stock_count > 0 AND (OLD.stock_count = 0 OR OLD.in_stock = FALSE) THEN
+    -- Auto-restore in_stock when stock is added back
+    NEW.in_stock := TRUE;
+  END IF;
+  RETURN NEW;
+END;
+$$;
 
-  ('GF-002', 'Dried Flower Bundle',
-   'Preserved pampas, dried roses, and bunny tail grass — a lasting, low-maintenance gift.',
-   48, 16, 'Gifts', NULL, '🪷',
-   ARRAY['Small','Standard'], 'Appalachian Dried Goods', 8, 2, true),
+DROP TRIGGER IF EXISTS trg_sync_in_stock ON inventory;
+CREATE TRIGGER trg_sync_in_stock
+  BEFORE UPDATE OF stock_count ON inventory
+  FOR EACH ROW EXECUTE FUNCTION fn_sync_in_stock_from_count();
 
-  ('GF-003', 'Bud Vase Set',
-   'A set of three bud vases with single-stem flowers — minimal, modern, and gift-ready.',
-   55, 20, 'Gifts', 'New', '🏺',
-   ARRAY['Standard'], 'In-house', 2, 3, true)
+-- ── 7. Same trigger for inventory_stock (variant-level) ──────────────────────
 
-ON CONFLICT (sku) DO NOTHING;
+CREATE OR REPLACE FUNCTION fn_sync_variant_in_stock()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.stock_count = 0 THEN
+    NEW.in_stock := FALSE;
+  ELSIF NEW.stock_count > 0 AND (OLD.stock_count = 0 OR OLD.in_stock = FALSE) THEN
+    NEW.in_stock := TRUE;
+  END IF;
+  RETURN NEW;
+END;
+$$;
 
+DROP TRIGGER IF EXISTS trg_sync_variant_in_stock ON inventory_stock;
+CREATE TRIGGER trg_sync_variant_in_stock
+  BEFORE UPDATE OF stock_count ON inventory_stock
+  FOR EACH ROW EXECUTE FUNCTION fn_sync_variant_in_stock();
 
--- ─────────────────────────────────────────────────────────────────────────────
---  SEED: employees
---  Passwords are NULL here — run scripts/seed-dev.js after container starts
---  to populate password_hash for all three accounts.
--- ─────────────────────────────────────────────────────────────────────────────
-
-INSERT INTO employees (name, email, phone, role, status, hire_date)
-VALUES
-  ('Cecelia Bates', 'cecelia@lambsflorist.com', '(256) 555-0101', 'admin',    'active', '2010-03-01'),
-  ('Frank Bates',   'frank@lambsflorist.com',   '(256) 555-0102', 'manager',  'active', '2010-03-01'),
-  ('Jane Holloway', 'jane@lambsflorist.com',     '(256) 555-0103', 'employee', 'active', '2022-06-15')
-ON CONFLICT (email) DO NOTHING;
+COMMIT;

@@ -75,7 +75,9 @@ export default function OrderConfirmationPage() {
     } catch { return []; }
   })();
 
-  const zoneLabel = DELIVERY_ZONES.find((z) => z.value === order?.delivery_zone)?.label ?? order?.delivery_zone;
+  const zoneLabel       = DELIVERY_ZONES.find((z) => z.value === order?.delivery_zone)?.label ?? order?.delivery_zone;
+  const isPickup        = order?.fulfillment_type === "pickup";
+  const fulfillmentDate = isPickup ? order?.delivery_date : order?.delivery_date;
 
   return (
     <div className="font-serif bg-brand-cream min-h-screen overflow-x-hidden">
@@ -147,10 +149,16 @@ export default function OrderConfirmationPage() {
                 </div>
                 <div className="px-6 py-5 flex flex-col gap-4">
                   {[
-                    { label: "Deliver To",   value: order.delivery_address },
-                    { label: "Zone",         value: zoneLabel              },
-                    { label: "Date",         value: formatDate(order.delivery_date) },
-                    { label: "Window",       value: `${capitalise(order.delivery_window)} delivery` },
+                    ...(isPickup ? [
+                      { label: "Pickup At",   value: "204 Main St, Piedmont, AL 36272" },
+                      { label: "Date",        value: formatDate(order.delivery_date) },
+                      { label: "Time",        value: order.pickup_time ?? "—" },
+                    ] : [
+                      { label: "Deliver To",  value: order.delivery_address },
+                      { label: "Zone",        value: zoneLabel },
+                      { label: "Date",        value: formatDate(order.delivery_date) },
+                      { label: "Window",      value: order.delivery_window ? `${order.delivery_window} window` : "—" },
+                    ]),
                     ...(order.note_message ? [{ label: "Card Message", value: order.note_message }] : []),
                   ].map(({ label, value }) => (
                     <div key={label}>

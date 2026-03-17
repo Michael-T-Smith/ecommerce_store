@@ -1,20 +1,13 @@
 "use client";
 
-import { useState }          from "react";
-import Link                  from "next/link";
-import { FEATURED, CATALOG } from "@/lib/data";
-import { useCart }           from "@/app/CartContext";
-import { B }                 from "@/lib/brand";
-import FlowerMark            from "@/app/components/icons/FlowerMark";
-import ProductCardActions    from "@/app/components/ProductCardActions/ProductCardActions";
+import { useState }        from "react";
+import Link                from "next/link";
+import { useCart }         from "@/app/CartContext";
+import { B }               from "@/lib/brand";
+import FlowerMark          from "@/app/components/icons/FlowerMark";
+import ProductCardActions  from "@/app/components/ProductCardActions/ProductCardActions";
 
-const FEATURED_FULL = FEATURED.map((f) => ({
-  ...CATALOG.find((c) => c.id === f.id),
-  accent: f.accent,
-  tag   : f.tag,
-})).filter(Boolean);
-
-export default function FeaturedArrangements() {
+export default function FeaturedArrangements({ items = [] }) {
   const { addItem, items: cartItems } = useCart();
   const [pickerOpen, setPickerOpen] = useState({});
 
@@ -26,6 +19,25 @@ export default function FeaturedArrangements() {
 
   const qtyForSize = (id, size) =>
     cartItems.find((c) => c.id === id && c.size === size)?.qty ?? 0;
+
+  // Fallback if no items are featured yet
+  if (items.length === 0) {
+    return (
+      <section className="px-5 sm:px-10 lg:px-16 py-20 sm:py-28 bg-brand-cream">
+        <div className="max-w-[1200px] mx-auto text-center py-16">
+          <div className="text-[56px] mb-4">🌸</div>
+          <p className="font-sans text-brand-smoke text-[14px] leading-relaxed">
+            No featured arrangements set. An admin can mark up to 3 items as
+            featured from the{" "}
+            <a href="/dashboard/inventory"
+              className="text-brand-orange font-extrabold no-underline hover:underline">
+              inventory dashboard
+            </a>.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="px-5 sm:px-10 lg:px-16 py-20 sm:py-28 bg-brand-cream">
@@ -51,21 +63,22 @@ export default function FeaturedArrangements() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-[1200px] mx-auto">
-        {FEATURED_FULL.map((item) => {
+        {items.map((item) => {
           const multiSize = item.sizes?.length > 1;
           const isOpen    = !!pickerOpen[item.id];
           const totalQty  = totalQtyFor(item.id);
           const inCart    = totalQty > 0;
+          const accent    = item.featuredAccent || B.orange;
 
           return (
             <div
               key={item.id}
               className="bg-brand-cream border-[3px] border-brand-black overflow-hidden group hover:-translate-y-2 hover:shadow-retro-xl shadow-retro-sm transition-all duration-[180ms]"
             >
-              {/* Hero image */}
+              {/* Hero image zone */}
               <div
                 className="h-[260px] sm:h-[300px] flex items-center justify-center relative overflow-hidden"
-                style={{ background: item.accent }}
+                style={{ background: accent }}
               >
                 <div
                   className="absolute inset-0"
@@ -81,7 +94,8 @@ export default function FeaturedArrangements() {
 
                 {inCart && (
                   <div className="absolute top-4 left-0 bg-brand-orange text-brand-cream font-sans font-extrabold text-[10px] tracking-[2px] uppercase px-4 py-1.5 border-r-[3px] border-brand-black z-[2] flex items-center gap-2">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="3.5" strokeLinecap="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                     In Bag · {totalQty}
@@ -105,8 +119,8 @@ export default function FeaturedArrangements() {
                   </p>
                 )}
 
-                {/* Size picker — no !inCart guard */}
-                {isOpen && multiSize && (
+                {/* Size picker */}
+                {isOpen && multiSize && item.inStock && (
                   <div className="mb-4 pt-3 border-t border-brand-black/10 flex flex-wrap gap-2">
                     <span className="font-sans text-[9px] font-extrabold tracking-[1px] uppercase text-brand-smoke w-full mb-0.5">
                       {inCart ? "Add size:" : "Select size:"}
@@ -141,11 +155,17 @@ export default function FeaturedArrangements() {
                     >
                       View
                     </Link>
-                    <ProductCardActions
-                      product={item}
-                      isPickerOpen={isOpen}
-                      onTogglePicker={() => togglePicker(item.id)}
-                    />
+                    {item.inStock ? (
+                      <ProductCardActions
+                        product={item}
+                        isPickerOpen={isOpen}
+                        onTogglePicker={() => togglePicker(item.id)}
+                      />
+                    ) : (
+                      <span className="font-sans font-extrabold text-[10px] tracking-[1.5px] uppercase text-brand-smoke/50 border-[2px] border-brand-smoke/20 px-4 py-2.5">
+                        Out of Stock
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

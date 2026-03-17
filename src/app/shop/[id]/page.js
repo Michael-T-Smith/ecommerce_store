@@ -30,7 +30,7 @@ export default async function ShopProductPage({ params }) {
     pool.query(
       `SELECT id, sku, name, description,
               price, category, tag, emoji,
-              sizes, supplier,
+              sizes, supplier, image_path,
               stock_count, in_stock
        FROM inventory
        WHERE id = $1
@@ -42,7 +42,7 @@ export default async function ShopProductPage({ params }) {
     // We pass id twice: once to exclude the current product, once to
     // find its category via a correlated lookup.
     pool.query(
-      `SELECT i.id, i.name, i.price, i.emoji,
+      `SELECT i.id, i.name, image_path, i.price, i.emoji,
               i.category, i.tag, i.sizes, i.in_stock
        FROM inventory i
        WHERE i.category = (
@@ -70,6 +70,7 @@ export default async function ShopProductPage({ params }) {
     category  : row.category,
     tag       : row.tag ?? null,
     emoji     : row.emoji ?? "💐",
+    image_path : row.image_path ?? null,
     sizes     : row.sizes,                   // TEXT[] — already a JS array via pg
     supplier  : row.supplier ?? null,
     stockCount: row.stock_count,
@@ -81,6 +82,7 @@ export default async function ShopProductPage({ params }) {
     name    : r.name,
     price   : Number(r.price),
     emoji   : r.emoji ?? "💐",
+    image_path   : r.image_path ?? null,
     category: r.category,
     tag     : r.tag ?? null,
     sizes   : r.sizes,

@@ -1,6 +1,5 @@
-
 "use client";
- 
+
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useDashboardSession }  from "@/app/dashboard/SessionContext";
 import { canDo }                from "@/lib/permissions";
@@ -15,14 +14,14 @@ import {
   deleteInventoryItem,
 } from "@/lib/dashboardApi";
 import { B } from "@/lib/brand";
- 
+
 const CATEGORIES = ["All", "Bouquets", "Arrangements", "Plants", "Seasonal", "Gifts"];
 const LOCATIONS  = [
   { value: "all",       label: "All Locations" },
   { value: "piedmont",  label: "Piedmont"       },
   { value: "anniston",  label: "Anniston"       },
 ];
- 
+
 // Map snake_case DB row → camelCase for UI components
 function remapItem(row) {
   return {
@@ -41,13 +40,15 @@ function remapItem(row) {
     stockCount        : row.stock_count,
     lowStockThreshold : row.low_stock_threshold,
     inStock           : row.in_stock,
+    isFeatured        : row.is_featured        ?? false,
+    featuredAccent    : row.featured_accent     ?? "#D4511A",
     createdAt         : row.created_at,
   };
 }
- 
+
 export default function InventoryPage() {
   const { user } = useDashboardSession();
- 
+
   const [items,         setItems        ] = useState([]);
   const [loading,       setLoading      ] = useState(true);
   const [apiError,      setApiError     ] = useState(null);
@@ -58,11 +59,11 @@ export default function InventoryPage() {
   const [modalMode,     setModalMode    ] = useState(null);
   const [editItem,      setEditItem     ] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
- 
+
   const canCreate = canDo(user.role, "inventory", "create");
   const canEdit   = canDo(user.role, "inventory", "update");
   const canDelete = canDo(user.role, "inventory", "delete");
- 
+  
   const load = useCallback(async () => {
     try {
       setLoading(true);
@@ -80,9 +81,9 @@ export default function InventoryPage() {
       setLoading(false);
     }
   }, [filterCat, filterStock]);
- 
+
   useEffect(() => { load(); }, [load]);
- 
+
   const filteredItems = useMemo(() => {
     let result = [...items];
     if (filterStock === "low") {
@@ -98,7 +99,7 @@ export default function InventoryPage() {
     }
     return result;
   }, [items, filterStock, search]);
- 
+
   const handleSave = async (formData) => {
     try {
       if (modalMode === "add") {
@@ -116,10 +117,10 @@ export default function InventoryPage() {
       alert(`Save failed: ${err.message}`);
     }
   };
- 
+
   const handleEdit   = (item) => { setEditItem(item); setModalMode("edit"); };
   const handleDelete = (id)   => setConfirmDelete(id);
- 
+
   const confirmDeleteAction = async () => {
     try {
       await deleteInventoryItem(confirmDelete);
@@ -130,7 +131,7 @@ export default function InventoryPage() {
       setConfirmDelete(null);
     }
   };
- 
+
   const handleToggleStock = async (item) => {
     const newVal = !item.inStock;
     setItems((prev) =>
@@ -143,17 +144,16 @@ export default function InventoryPage() {
       alert(`Update failed: ${err.message}`);
     }
   };
- 
+
   const inStockCount = items.filter((i) => i.inStock).length;
   const outCount     = items.filter((i) => !i.inStock).length;
   const lowCount     = items.filter((i) => i.inStock && i.stockCount <= i.lowStockThreshold).length;
- 
+
   if (loading) return <PageSpinner label="Loading Inventory" />;
   if (apiError) return <PageError message={apiError} onRetry={load} />;
- 
   return (
     <div className="flex flex-col gap-6">
- 
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -176,7 +176,7 @@ export default function InventoryPage() {
           </button>
         )}
       </div>
- 
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard label="Total" value={String(items.length)} sub="products" accent={B.orange}
@@ -188,10 +188,10 @@ export default function InventoryPage() {
         <StatCard label="Running Low" value={String(lowCount)} sub="below threshold" accent={B.gold}
           icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>} />
       </div>
- 
+
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
- 
+
         {/* Search */}
         <div className="relative flex-1 min-w-[200px] max-w-[300px]">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -205,13 +205,13 @@ export default function InventoryPage() {
             className="w-full border border-gray-200 pl-8 pr-3 py-2.5 font-sans text-[12px] placeholder:text-brand-smoke/60 focus:outline-none focus:border-brand-orange bg-white transition-colors"
           />
         </div>
- 
+
         {/* Category */}
         <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)}
           className="border border-gray-200 px-3 py-2.5 font-sans font-extrabold text-[11px] text-brand-smoke bg-white cursor-pointer focus:outline-none focus:border-brand-orange">
           {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
         </select>
- 
+
         {/* Stock status */}
         <div className="flex gap-1">
           {[
@@ -230,7 +230,7 @@ export default function InventoryPage() {
             </button>
           ))}
         </div>
- 
+
         {/* Location filter */}
         <div className="flex gap-1 border-l border-gray-200 pl-3">
           <span className="font-sans font-extrabold text-[9px] tracking-[1.5px] uppercase text-brand-smoke self-center mr-1">
@@ -248,7 +248,7 @@ export default function InventoryPage() {
           ))}
         </div>
       </div>
- 
+
       {/* Location notice when filtering — variant stock by location is in migration 003 */}
       {filterLocation !== "all" && (
         <div className="bg-amber-50 border border-amber-200 px-4 py-3 font-sans text-[12px] text-amber-800 flex items-center gap-2">
@@ -259,14 +259,16 @@ export default function InventoryPage() {
           <strong>inventory_stock</strong> table (migration 003). Location stock detail view coming in next update.
         </div>
       )}
- 
+
       <InventoryTable
         items={filteredItems}
+        canEdit={canEdit}
+        canDelete={canDelete}
         onEdit={canEdit ? handleEdit : null}
         onDelete={canDelete ? handleDelete : null}
         onToggleStock={canEdit ? handleToggleStock : null}
       />
- 
+
       {/* Delete confirmation */}
       {confirmDelete !== null && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-5">
@@ -291,7 +293,7 @@ export default function InventoryPage() {
           </div>
         </div>
       )}
- 
+
       {modalMode && (
         <InventoryModal
           mode={modalMode}

@@ -50,6 +50,7 @@ export function CartProvider({ children }) {
           name    : product.name,
           price   : product.price,
           emoji   : product.emoji,
+          image_path   : product.image_path,
           category: product.category,
           size    : resolvedSize,
           qty     : 1,

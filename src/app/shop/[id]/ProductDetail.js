@@ -15,7 +15,7 @@ import Navbar           from "@/app/components/Navbar/Navbar";
 import Footer           from "@/app/components/Footer/Footer";
 import { useCart }      from "@/app/CartContext";
 import { B }            from "@/lib/brand";
-
+import Image from "next/image";
 // ── Small helper: stock status pill ─────────────────────────────────────────
 function StockPill({ inStock, stockCount }) {
   if (!inStock) {
@@ -189,9 +189,8 @@ export default function ProductDetail({ product, related }) {
                 <span
                   className={`text-[160px] leading-none select-none ${
                     !product.inStock ? "opacity-40 grayscale" : ""
-                  }`}
-                >
-                  {product.emoji}
+                  }`}> 
+                    {product.image_path ? <Image src={product.image_path} alt="Product Image" height={450} width={450}  /> : product.emoji}
                 </span>
               </div>
 

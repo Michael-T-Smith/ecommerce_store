@@ -31,7 +31,8 @@ export async function GET(request) {
     const result = await pool.query(
       `SELECT id, sku, name, description, price, cost_price, category, tag,
               emoji, sizes, supplier, stock_count, low_stock_threshold,
-              in_stock, created_at, updated_at
+              in_stock, is_featured, featured_accent,
+              created_at, updated_at
        FROM inventory ${where} ORDER BY category, name`,
       params
     );
@@ -51,7 +52,8 @@ export async function POST(request) {
     const body = await request.json();
     const { sku, name, description, price, costPrice,
             category, tag, emoji, sizes, supplier,
-            stockCount, lowStockThreshold, inStock } = body;
+            stockCount, lowStockThreshold, inStock,
+            isFeatured, featuredAccent } = body;
 
     if (!sku || !name || !price || !category)
       return badRequest("sku, name, price, and category are required.");
@@ -59,8 +61,9 @@ export async function POST(request) {
     const result = await pool.query(
       `INSERT INTO inventory
          (sku, name, description, price, cost_price, category, tag, emoji,
-          sizes, supplier, stock_count, low_stock_threshold, in_stock)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+          sizes, supplier, stock_count, low_stock_threshold, in_stock,
+          is_featured, featured_accent)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
        RETURNING *`,
       [
         sku.trim().toUpperCase(), name.trim(),
@@ -68,6 +71,8 @@ export async function POST(request) {
         category, tag || null, emoji || null, sizes ?? [],
         supplier?.trim() || null, Number(stockCount ?? 0),
         Number(lowStockThreshold ?? 2), inStock ?? true,
+        isFeatured ?? false,
+        featuredAccent ?? "#D4511A",
       ]
     );
 

@@ -1,7 +1,5 @@
-
 "use client";
 
-import { canDo }  from "@/lib/permissions";
 import { B }      from "@/lib/brand";
 
 // Stock status badge
@@ -33,13 +31,13 @@ function StockBadge({ inStock, stockCount, threshold }) {
 
 export default function InventoryTable({
   items,
+  canEdit,
+  canDelete,
   onEdit,
   onDelete,
   onToggleStock,
   userRole,
 }) {
-  const canEdit   = canDo(userRole, "inventory", "update");
-  const canDelete = canDo(userRole, "inventory", "delete");
 
   if (items.length === 0) {
     return (
@@ -58,7 +56,7 @@ export default function InventoryTable({
         <table className="w-full min-w-[820px] border-collapse">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              {["Item", "SKU", "Category", "Price / Cost", "Stock Status", "Supplier", "Actions"].map((h) => (
+              {["Item", "SKU", "Category", "Price / Cost", "Stock", "Featured", "Supplier", "Actions"].map((h) => (
                 <th key={h} className="text-left px-4 py-3 font-sans font-extrabold text-[10px] tracking-[1.5px] uppercase text-brand-smoke whitespace-nowrap">
                   {h}
                 </th>
@@ -136,6 +134,22 @@ export default function InventoryTable({
                 </td>
 
                 {/* Supplier */}
+                {/* Featured indicator */}
+                <td className="px-4 py-3 text-center">
+                  {item.isFeatured ? (
+                    <div className="flex flex-col items-center gap-1">
+                      <span title="Featured on homepage" className="text-[16px]">⭐</span>
+                      <div
+                        className="w-5 h-3 border border-brand-black/20 rounded-sm"
+                        style={{ background: item.featuredAccent ?? "#D4511A" }}
+                        title={`Accent: ${item.featuredAccent ?? "#D4511A"}`}
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-brand-smoke/30 text-[14px]">—</span>
+                  )}
+                </td>
+
                 <td className="px-4 py-3">
                   <span className="font-sans text-[12px] text-brand-smoke">{item.supplier}</span>
                 </td>

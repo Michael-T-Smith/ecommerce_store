@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect }  from "react";
@@ -20,7 +19,9 @@ const EMPTY_FORM = {
   supplier    : "Piedmont Valley Growers",
   stockCount  : "",
   lowStockThreshold: "2",
-  inStock     : true,
+  inStock          : true,
+  isFeatured        : false,
+  featuredAccent    : "#D4511A",
 };
 
 export default function InventoryModal({ mode, item, onSave, onClose }) {
@@ -40,10 +41,14 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
         emoji            : item.emoji             || "💐",
         description      : item.description       || "",
         sizes            : item.sizes             || ["Standard"],
+        sizes_multiplier : item.sizes_multiplier  || [1],
+        image_path       : item.image_path        || "",
         supplier         : item.supplier          || "Piedmont Valley Growers",
         stockCount       : String(item.stockCount) || "0",
         lowStockThreshold: String(item.lowStockThreshold) || "2",
         inStock          : item.inStock           ?? true,
+        isFeatured        : item.isFeatured        ?? false,
+        featuredAccent    : item.featuredAccent    ?? "#D4511A",
       });
     } else {
       setForm(EMPTY_FORM);
@@ -88,6 +93,9 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
       stockCount       : Number(form.stockCount),
       lowStockThreshold: Number(form.lowStockThreshold),
       tag              : form.tag === "None" ? null : form.tag,
+      isFeatured       : form.isFeatured,
+      image_path       : `${form.category/form.name}.png`,
+      featuredAccent   : form.featuredAccent,
     });
   };
 
@@ -253,6 +261,79 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
                   {form.inStock ? "In Stock — Visible on storefront" : "Out of Stock — Hidden from add-to-bag"}
                 </span>
               </button>
+            </div>
+
+            {/* ── Featured toggle + accent picker — full width ── */}
+            <div className="sm:col-span-2 border-t-2 border-dashed border-brand-black/10 pt-5">
+              <label className="block font-sans font-extrabold text-[10px] tracking-[2px] uppercase text-brand-smoke mb-2">
+                Homepage Featured
+              </label>
+              <p className="font-sans text-[11px] text-brand-smoke/70 mb-3 leading-relaxed">
+                Featured items appear in the &ldquo;This Week&apos;s Picks&rdquo; section on the homepage.
+                Keep to 3 items max for the best layout.
+              </p>
+
+              {/* Featured on/off toggle */}
+              <button
+                type="button"
+                onClick={() => set("isFeatured", !form.isFeatured)}
+                className={`flex items-center gap-3 px-4 py-3 border-2 cursor-pointer transition-colors mb-4 ${
+                  form.isFeatured
+                    ? "border-brand-orange bg-brand-orange/5 text-brand-orange"
+                    : "border-gray-200 bg-white text-brand-smoke hover:border-brand-orange"
+                }`}
+              >
+                <span className="text-[16px]">{form.isFeatured ? "⭐" : "☆"}</span>
+                <span className="font-sans font-extrabold text-[12px] tracking-[1px] uppercase">
+                  {form.isFeatured ? "Featured on Homepage" : "Not Featured"}
+                </span>
+              </button>
+
+              {/* Accent colour swatches — only shown when featured */}
+              {form.isFeatured && (
+                <div>
+                  <label className="block font-sans font-extrabold text-[10px] tracking-[2px] uppercase text-brand-smoke mb-2">
+                    Card Background Colour
+                  </label>
+                  <div className="flex gap-2 flex-wrap">
+                    {[
+                      { hex: "#D4511A", label: "Orange"  },
+                      { hex: "#3D2B1A", label: "Bark"    },
+                      { hex: "#C9A84C", label: "Gold"    },
+                      { hex: "#111111", label: "Black"   },
+                      { hex: "#5C7A4E", label: "Sage"    },
+                      { hex: "#8B1A2A", label: "Crimson" },
+                      { hex: "#1A3A2A", label: "Forest"  },
+                      { hex: "#4A3728", label: "Mocha"   },
+                    ].map(({ hex, label }) => (
+                      <button
+                        key={hex}
+                        type="button"
+                        title={label}
+                        onClick={() => set("featuredAccent", hex)}
+                        className={`w-9 h-9 border-[3px] cursor-pointer transition-transform hover:scale-110 ${
+                          form.featuredAccent === hex
+                            ? "border-brand-black scale-110 shadow-retro-sm"
+                            : "border-transparent"
+                        }`}
+                        style={{ background: hex }}
+                      />
+                    ))}
+                  </div>
+                  {/* Live preview swatch */}
+                  <div className="mt-3 flex items-center gap-3">
+                    <div
+                      className="w-full h-10 border-2 border-brand-black/20 flex items-center justify-center gap-2"
+                      style={{ background: form.featuredAccent }}
+                    >
+                      <span className="text-[20px]">{form.emoji}</span>
+                      <span className="font-sans font-extrabold text-[10px] tracking-[1px] uppercase text-white/80">
+                        Card preview
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
           </div>

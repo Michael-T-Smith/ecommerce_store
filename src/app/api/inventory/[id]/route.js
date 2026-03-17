@@ -12,7 +12,8 @@ export async function GET(_request, { params }) {
     const result = await pool.query(
       `SELECT id, sku, name, description, price, cost_price, category, tag,
               emoji, sizes, supplier, stock_count, low_stock_threshold,
-              in_stock, created_at, updated_at
+              in_stock, is_featured, featured_accent,
+              created_at, updated_at
        FROM inventory WHERE id = $1`,
       [parseInt(params.id)]
     );
@@ -30,14 +31,21 @@ export async function PATCH(request, { params }) {
     if (!user)                                    return forbidden("Not authenticated.");
     if (!canDo(user.role, "inventory", "update")) return forbidden();
 
-    const id   = parseInt(params.id);
+    const { id }   = await params;
     const body = await request.json();
 
     const ALLOWED      = ["name","description","price","cost_price","category",
                           "tag","emoji","sizes","supplier","stock_count",
-                          "low_stock_threshold","in_stock"];
-    const camelToSnake = { costPrice:"cost_price", stockCount:"stock_count",
-                           lowStockThreshold:"low_stock_threshold", inStock:"in_stock" };
+                          "low_stock_threshold","in_stock",
+                          "is_featured","featured_accent"];
+    const camelToSnake = {
+      costPrice        : "cost_price",
+      stockCount       : "stock_count",
+      lowStockThreshold: "low_stock_threshold",
+      inStock          : "in_stock",
+      isFeatured       : "is_featured",
+      featuredAccent   : "featured_accent",
+    };
     const sets = [], values = [];
     let   p    = 1;
 

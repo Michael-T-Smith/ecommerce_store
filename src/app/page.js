@@ -1,42 +1,47 @@
+import pool           from "@/lib/db";
+import HomePageClient from "./HomePageClient";
 
-"use client";
+export const metadata = {
+  title      : "Lamb's Florist — Piedmont, Alabama",
+  description: "Fresh arrangements, plants, and gifts. Handcrafted at our Piedmont studio. Delivery to Piedmont, Anniston, and Centre.",
+};
 
-import { useState } from "react";
+export const revalidate = 60;
 
-import AnnouncementBar      from "@/app/components/AnnouncementBar/AnnouncementBar";
-import Navbar               from "@/app/components/Navbar/Navbar";
-import HeroSection          from "@/app/components/HeroSection/HeroSection";
-import OccasionsTicker      from "@/app/components/OccasionsTicker/OccasionsTicker";
-import FeaturedArrangements from "@/app/components/FeaturedArrangements/FeaturedArrangements";
-import CatalogSection       from "@/app/components/CatalogSection/CatalogSection";
-import PromoBand            from "@/app/components/PromoBand/PromoBand";
-import Footer               from "@/app/components/Footer/Footer";
-import ThemeSwitcher        from "@/app/components/ThemeSwitcher/ThemeSwitcher";
+function dbRowToFeaturedItem(row) {
+  return {
+    id            : row.id,
+    sku           : row.sku,
+    name          : row.name,
+    description   : row.description   ?? "",
+    price         : Number(row.price),
+    category      : row.category,
+    tag           : row.tag           ?? null,
+    emoji         : row.emoji         ?? "🌸",
+    sizes         : Array.isArray(row.sizes) ? row.sizes : [],
+    inStock       : Boolean(row.in_stock),
+    stockCount    : Number(row.stock_count ?? 0),
+    featuredAccent: row.featured_accent ?? "#D4511A",
+  };
+}
 
-import { HERO_THEMES } from "@/lib/themes";
+export default async function HomePage() {
+  let featuredItems = [];
 
-export default function HomePage() {
-  const [cartCount, setCartCount] = useState(0);
-  const [themeKey,  setThemeKey ] = useState("default");
+  try {
+    const result = await pool.query(
+      `SELECT id, sku, name, description, price, category, tag,
+              emoji, sizes, stock_count, in_stock, featured_accent
+       FROM inventory
+       WHERE is_featured = TRUE AND in_stock = TRUE
+       ORDER BY updated_at DESC
+       LIMIT 3`
+    );
+    featuredItems = result.rows.map(dbRowToFeaturedItem);
+  } catch (err) {
+    // DB error — homepage still renders, featured section shows fallback
+    console.error("[HomePage] Failed to load featured items:", err.message);
+  }
 
-  const addToCart = () => setCartCount((c) => c + 1);
-  const theme     = HERO_THEMES[themeKey];
-
-  return (
-    <div className="font-serif bg-brand-cream min-h-screen overflow-x-hidden">
-      <AnnouncementBar />
-      <Navbar
-        cartCount={cartCount}
-      />
-      <HeroSection theme={theme} />
-      <OccasionsTicker />
-      <FeaturedArrangements onAddToCart={addToCart} />
-      <CatalogSection       onAddToCart={addToCart} />
-      <PromoBand />
-      <Footer />
-
-      {/* Remove or gate behind admin session before going live */}
-      <ThemeSwitcher activeTheme={themeKey} onChange={setThemeKey} />
-    </div>
-  );
+  return <HomePageClient featuredItems={featuredItems} />;
 }
