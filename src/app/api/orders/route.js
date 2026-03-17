@@ -1,55 +1,37 @@
-// src/app/api/orders/route.js
-//
-// GET  /api/orders — list orders with optional filters
-// POST /api/orders — create order + delivery row in one transaction
-
-import pool               from "@/lib/db";
-import { getRequestUser } from "@/lib/getRequestUser";
-import { canDo }          from "@/lib/permissions";
-import {
-  okList, created, badRequest, forbidden, serverError,
-} from "@/lib/apiHelpers";
+import pool                        from "@/lib/db";
+import { getServerUser }           from "@/lib/getRequestUser";
+import { canDo }                   from "@/lib/permissions";
+import { ok, okList, created, badRequest, forbidden, serverError } from "@/lib/apiHelpers";
 
 export async function GET(request) {
   try {
+    const user = await getServerUser();
+    if (!user)                              return forbidden("Not authenticated.");
+    if (!canDo(user.role, "orders", "read")) return forbidden();
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const zone   = searchParams.get("zone");
-    const search = searchParams.get("search");
-    const date   = searchParams.get("date");
+    const from   = searchParams.get("from");
+    const to     = searchParams.get("to");
 
     const conditions = [];
     const params     = [];
     let   p          = 1;
 
-    if (status && status !== "all") {
-      conditions.push(`o.status = $${p++}`);
-      params.push(status);
-    }
-    if (zone) {
-      conditions.push(`o.delivery_zone = $${p++}`);
-      params.push(zone);
-    }
-    if (date) {
-      conditions.push(`o.delivery_date = $${p++}`);
-      params.push(date);
-    }
-    if (search) {
-      conditions.push(`(o.order_number ILIKE $${p} OR o.customer_name ILIKE $${p})`);
-      params.push(`%${search}%`);
-      p++;
-    }
+    if (status) { conditions.push(`status = $${p++}`);          params.push(status); }
+    if (zone)   { conditions.push(`delivery_zone = $${p++}`);   params.push(zone);   }
+    if (from)   { conditions.push(`delivery_date >= $${p++}`);  params.push(from);   }
+    if (to)     { conditions.push(`delivery_date <= $${p++}`);  params.push(to);     }
 
-    const where  = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const where  = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const result = await pool.query(
-      `SELECT o.id, o.order_number, o.customer_name, o.customer_email,
-              o.customer_phone, o.items, o.subtotal, o.delivery_fee, o.total,
-              o.status, o.delivery_address, o.delivery_zone, o.delivery_date,
-              o.delivery_window, o.note_message, o.staff_notes,
-              o.stripe_payment_id, o.created_at, o.updated_at
-       FROM orders o
-       ${where}
-       ORDER BY o.created_at DESC`,
+      `SELECT order_number, customer_name, customer_email, customer_phone,
+              items, subtotal, delivery_fee, total,
+              delivery_address, delivery_zone, delivery_date, delivery_window,
+              note_message, status, staff_notes, stripe_payment_id,
+              customer_id, created_at, updated_at
+       FROM orders ${where} ORDER BY created_at DESC`,
       params
     );
 
@@ -60,73 +42,69 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  // Public endpoint — no auth required. Used by checkout.
   try {
-    const user = getRequestUser(request);
-    if (!canDo(user.role, "orders", "create")) return forbidden();
-
     const body = await request.json();
     const {
       customerName, customerEmail, customerPhone,
       items, subtotal, deliveryFee, total,
       deliveryAddress, deliveryZone, deliveryDate,
-      deliveryWindow, noteMessage,
+      deliveryWindow, noteMessage, customerId,
     } = body;
 
-    if (!customerName || !items?.length || !deliveryAddress || !deliveryZone || !deliveryDate) {
-      return badRequest("customerName, items, deliveryAddress, deliveryZone, and deliveryDate are required.");
-    }
+    if (!customerName || !customerEmail)
+      return badRequest("customerName and customerEmail are required.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail))
+      return badRequest("Invalid email address.");
+    if (!items?.length)
+      return badRequest("Order must contain at least one item.");
+    if (!deliveryAddress || !deliveryZone || !deliveryDate)
+      return badRequest("deliveryAddress, deliveryZone, and deliveryDate are required.");
 
-    // Generate order number: LF-YYYY-XXXX
-    const year        = new Date().getFullYear();
-    const countResult = await pool.query("SELECT COUNT(*) FROM orders");
-    const count       = parseInt(countResult.rows[0].count) + 1;
-    const orderNumber = `LF-${year}-${String(count).padStart(4, "0")}`;
+    const year   = new Date().getFullYear();
+    const seqRes = await pool.query(
+      "SELECT COUNT(*) FROM orders WHERE EXTRACT(YEAR FROM created_at) = $1", [year]
+    );
+    const seq         = parseInt(seqRes.rows[0].count) + 1;
+    const orderNumber = `LF-${year}-${String(seq).padStart(4, "0")}`;
 
-    // Transaction: insert order + delivery atomically
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
 
-      const orderResult = await client.query(
+      const orderRes = await client.query(
         `INSERT INTO orders
            (order_number, customer_name, customer_email, customer_phone,
-            items, subtotal, delivery_fee, total, delivery_address,
-            delivery_zone, delivery_date, delivery_window, note_message)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+            items, subtotal, delivery_fee, total,
+            delivery_address, delivery_zone, delivery_date, delivery_window,
+            note_message, customer_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
          RETURNING *`,
         [
           orderNumber,
-          customerName,
-          customerEmail  || null,
-          customerPhone  || null,
+          customerName.trim(), customerEmail.trim().toLowerCase(),
+          customerPhone || null,
           JSON.stringify(items),
-          Number(subtotal),
-          Number(deliveryFee) || 0,
-          Number(total),
-          deliveryAddress,
-          deliveryZone,
-          deliveryDate,
-          deliveryWindow || "afternoon",
-          noteMessage    || null,
+          Number(subtotal ?? 0), Number(deliveryFee ?? 0), Number(total ?? 0),
+          deliveryAddress.trim(), deliveryZone, deliveryDate,
+          deliveryWindow || null, noteMessage || null,
+          customerId || null,
         ]
       );
 
-      const order = orderResult.rows[0];
+      const order = orderRes.rows[0];
 
-      // Delivery row created immediately — status: 'scheduled'
       await client.query(
-        `INSERT INTO deliveries
-           (order_id, zone, address, scheduled_date, scheduled_window)
+        `INSERT INTO deliveries (order_id, zone, address, scheduled_date, scheduled_window)
          VALUES ($1,$2,$3,$4,$5)`,
-        [order.id, deliveryZone, deliveryAddress, deliveryDate, deliveryWindow || "afternoon"]
+        [order.id, deliveryZone, deliveryAddress.trim(), deliveryDate, deliveryWindow || null]
       );
 
       await client.query("COMMIT");
       return created(order);
-
-    } catch (txErr) {
+    } catch (err) {
       await client.query("ROLLBACK");
-      throw txErr;
+      throw err;
     } finally {
       client.release();
     }

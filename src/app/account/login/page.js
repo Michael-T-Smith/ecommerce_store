@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect }        from "react";
@@ -60,35 +59,54 @@ export default function AccountLoginPage() {
     }
   };
 
-  const handleRegister = async () => {
-    if (!reg.name || !reg.email || !reg.password) {
-      setError("Name, email, and password are required.");
-      return;
-    }
-    if (reg.password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-    if (reg.password !== reg.confirm) {
-      setError("Passwords do not match.");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const res  = await fetch("/api/customers/register", {
-        method : "POST",
-        headers: { "Content-Type": "application/json" },
-        body   : JSON.stringify({ name: reg.name, email: reg.email, phone: reg.phone, password: reg.password }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error); setLoading(false); return; }
-      window.location.href = redirect;
-    } catch {
-      setError("Unable to reach the server. Please try again.");
-      setLoading(false);
-    }
-  };
+const handleRegister = async () => {
+  if (!reg.name || !reg.email || !reg.password) {
+    setError("Name, email, and password are required.");
+    return;
+  }
+
+  // Validate email address
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(reg.email.trim())) {
+    setError("Please enter a valid email address (e.g. you@example.com).");
+    return;
+  }
+
+  // Validate phone number
+  const phoneNumberRegex = /^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/;
+  if (!phoneNumberRegex.test(reg.phone.trim())) {
+    setError("Please enter a valid phone number in the format (XXX) XXX-XXXX, e.g. (123) 456-7890.");
+    return;
+  }
+  
+  // Validate password length
+  if (reg.password.length < 8) {
+    setError("Password must be at least 8 characters.");
+    return;
+  }
+
+  // Validate password and confirm password
+  if (reg.password !== reg.confirm) {
+    setError("Passwords do not match.");
+    return;
+  }
+
+  setLoading(true);
+  setError(null);
+  try {
+    const res  = await fetch("/api/customers/register", {
+      method : "POST",
+      headers: { "Content-Type": "application/json" },
+      body   : JSON.stringify({ name: reg.name, email: reg.email, phone: reg.phone, password: reg.password }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setError(data.error); setLoading(false); return; }
+    window.location.href = redirect;
+  } catch {
+    setError("Unable to reach the server. Please try again.");
+    setLoading(false);
+  }
+};
 
   const handleKey = (e, fn) => { if (e.key === "Enter") fn(); };
 

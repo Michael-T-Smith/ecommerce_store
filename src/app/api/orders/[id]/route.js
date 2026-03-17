@@ -1,42 +1,24 @@
-// src/app/api/orders/[id]/route.js
-//
-// GET   /api/orders/[id] — full order detail with delivery + driver
-// PATCH /api/orders/[id] — advance status, update staff_notes, or cancel
-//
-// Status transitions are strictly validated against VALID_TRANSITIONS.
-// Cancellation requires delete permission (admin only).
+import pool                        from "@/lib/db";
+import { getServerUser }           from "@/lib/getRequestUser";
+import { canDo }                   from "@/lib/permissions";
+import { ok, badRequest, forbidden, notFound, serverError } from "@/lib/apiHelpers";
 
-import pool               from "@/lib/db";
-import { getRequestUser } from "@/lib/getRequestUser";
-import { canDo }          from "@/lib/permissions";
-import {
-  ok, badRequest, forbidden, notFound, serverError,
-} from "@/lib/apiHelpers";
-
-const VALID_TRANSITIONS = {
-  pending         : ["confirmed", "cancelled"],
-  confirmed       : ["preparing", "cancelled"],
-  preparing       : ["out_for_delivery"],
-  out_for_delivery: ["delivered"],
-  delivered       : [],
-  cancelled       : [],
-};
-
-export async function GET(request, { params }) {
+export async function GET(_request, { params }) {
   try {
-    const id     = parseInt(params.id);
+    const user = await getServerUser();
+    if (!user)                               return forbidden("Not authenticated.");
+    if (!canDo(user.role, "orders", "read")) return forbidden();
+
     const result = await pool.query(
-      `SELECT o.*,
-              d.id          AS delivery_id,
-              d.status      AS delivery_status,
-              d.driver_id,
-              e.name        AS driver_name
-       FROM   orders o
-       LEFT JOIN deliveries d ON d.order_id = o.id
-       LEFT JOIN employees  e ON e.id = d.driver_id
-       WHERE  o.id = $1`,
-      [id]
+      `SELECT order_number, customer_name, customer_email, customer_phone,
+              items, subtotal, delivery_fee, total,
+              delivery_address, delivery_zone, delivery_date, delivery_window,
+              note_message, status, staff_notes, stripe_payment_id,
+              customer_id, created_at, updated_at
+       FROM orders WHERE order_number = $1`,
+      [params.id]
     );
+
     if (result.rowCount === 0) return notFound("Order not found.");
     return ok(result.rows[0]);
   } catch (err) {
@@ -46,54 +28,27 @@ export async function GET(request, { params }) {
 
 export async function PATCH(request, { params }) {
   try {
-    const user = getRequestUser(request);
+    const user = await getServerUser();
+    if (!user)                                 return forbidden("Not authenticated.");
     if (!canDo(user.role, "orders", "update")) return forbidden();
 
-    const id   = parseInt(params.id);
     const body = await request.json();
-
-    // Validate status transition
-    if (body.status) {
-      const current = await pool.query(
-        "SELECT status FROM orders WHERE id = $1",
-        [id]
-      );
-      if (current.rowCount === 0) return notFound("Order not found.");
-
-      const currentStatus = current.rows[0].status;
-      const allowed       = VALID_TRANSITIONS[currentStatus] ?? [];
-
-      if (!allowed.includes(body.status)) {
-        return badRequest(
-          `Cannot transition from '${currentStatus}' to '${body.status}'.`
-        );
-      }
-
-      if (body.status === "cancelled" && !canDo(user.role, "orders", "delete")) {
-        return forbidden("Only admins can cancel orders.");
-      }
-    }
-
     const ALLOWED = ["status", "staff_notes", "stripe_payment_id"];
-    const sets    = [];
-    const values  = [];
-    let   p       = 1;
+    const camelToSnake = { staffNotes: "staff_notes", stripePaymentId: "stripe_payment_id" };
+
+    const sets = [], values = [];
+    let   p    = 1;
 
     for (const [key, val] of Object.entries(body)) {
-      const col = key === "staffNotes"       ? "staff_notes"
-                : key === "stripePaymentId"  ? "stripe_payment_id"
-                : key;
-      if (ALLOWED.includes(col)) {
-        sets.push(`${col} = $${p++}`);
-        values.push(val);
-      }
+      const col = camelToSnake[key] ?? key;
+      if (ALLOWED.includes(col)) { sets.push(`${col} = $${p++}`); values.push(val); }
     }
 
-    if (sets.length === 0) return badRequest("No valid fields to update.");
+    if (!sets.length) return badRequest("No valid fields provided for update.");
 
-    values.push(id);
+    values.push(params.id);
     const result = await pool.query(
-      `UPDATE orders SET ${sets.join(", ")} WHERE id = $${p} RETURNING *`,
+      `UPDATE orders SET ${sets.join(", ")} WHERE order_number = $${p} RETURNING *`,
       values
     );
 

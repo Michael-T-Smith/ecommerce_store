@@ -1,4 +1,4 @@
-
+// src/app/dashboard/(shell)/employees/page.js
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
@@ -7,7 +7,6 @@ import { canDo, ROLE_META }     from "@/lib/permissions";
 import StatusBadge              from "@/app/components/dashboard/StatusBadge/StatusBadge";
 import EmployeeModal            from "@/app/components/dashboard/EmployeeModal/EmployeeModal";
 import { fetchEmployees, createEmployee, updateEmployee } from "@/lib/dashboardApi";
-import { PageSpinner, PageError } from "@/app/components/dashboard/PageStates/PageStates";
 
 function remapEmployee(row) {
   return {
@@ -233,6 +232,53 @@ export default function EmployeesPage() {
         <EmployeeModal mode={modalMode} employee={editEmployee}
           onSave={handleSave} onClose={() => { setModalMode(null); setEditEmployee(null); }} />
       )}
+    </div>
+  );
+}
+
+
+// ================================================================
+//  SHARED UI — PageSpinner and PageError
+//  Used by all four dashboard pages.
+//  Add these to: src/app/components/dashboard/PageStates/PageStates.js
+//  Then import in each page:
+//    import { PageSpinner, PageError } from "@/app/components/dashboard/PageStates/PageStates";
+// ================================================================
+
+// FILE: src/app/components/dashboard/PageStates/PageStates.js
+
+import { B } from "@/lib/brand";
+
+export function PageSpinner({ label = "Loading" }) {
+  return (
+    <div className="flex items-center justify-center py-32">
+      <div className="flex flex-col items-center gap-4">
+        <svg className="animate-spin" width="32" height="32" viewBox="0 0 24 24"
+          fill="none" stroke={B.orange} strokeWidth="2.5">
+          <path d="M21 12a9 9 0 11-6.219-8.56" />
+        </svg>
+        <span className="font-sans font-extrabold text-[10px] tracking-[3px] uppercase text-brand-smoke animate-pulse">
+          {label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function PageError({ message, onRetry }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-32 text-center px-5">
+      <div className="text-[56px] mb-4">⚠️</div>
+      <h2 className="font-serif font-black text-brand-black text-[24px] mb-2">Could not load data</h2>
+      <p className="font-sans text-brand-smoke text-[13px] max-w-[360px] leading-relaxed mb-4">{message}</p>
+      <p className="font-sans text-brand-smoke/60 text-[12px] mb-6">
+        Make sure the database is running:
+        <code className="ml-1 bg-gray-100 px-2 py-1 border border-gray-200 text-[11px]">docker compose up -d</code>
+      </p>
+      <button onClick={onRetry}
+        className="font-sans font-extrabold text-[12px] tracking-[1.5px] uppercase bg-brand-orange text-brand-cream border-2 border-brand-black px-6 py-3 cursor-pointer shadow-retro-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all">
+        Retry
+      </button>
     </div>
   );
 }

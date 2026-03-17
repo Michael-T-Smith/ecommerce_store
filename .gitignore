@@ -43,3 +43,6 @@ next-env.d.ts
 
 #docker compose
 /docker-compose.yml
+#continue
+.continue
+.continueignore

@@ -1,15 +1,18 @@
-
+// src/app/dashboard/login/page.js
 "use client";
 
 import { useState }    from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import FlowerMark from "@/app/components/icons/FlowerMark";
 import { B }      from "@/lib/brand";
 
 export default function LoginPage() {
-  const router       = useRouter();
   const searchParams = useSearchParams();
-  const redirect     = searchParams.get("redirect") || "/dashboard";
+  // Guard against a redirect loop if ?redirect points back to login
+  const rawRedirect  = searchParams.get("redirect") || "";
+  const redirect     = rawRedirect.startsWith("/dashboard") && !rawRedirect.startsWith("/dashboard/login")
+    ? rawRedirect
+    : "/dashboard";
   const reason       = searchParams.get("reason");
 
   const [email,    setEmail   ] = useState("");
@@ -44,8 +47,10 @@ export default function LoginPage() {
         return;
       }
 
-      // Success — cookie is set by the API route, redirect to dashboard
-      router.push(redirect);
+      // Success — use full navigation so the browser includes the new
+      // lambs_session cookie in the request headers middleware reads.
+      // router.push() does a client-side fetch that bypasses this.
+      window.location.href = redirect;
 
     } catch {
       setError("Unable to reach the server. Please try again.");
@@ -241,4 +246,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

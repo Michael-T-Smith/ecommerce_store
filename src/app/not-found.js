@@ -1,8 +1,16 @@
+'use client'
 import Link from "next/link";
 import FlowerMark from "@/app/components/icons/FlowerMark";
 import { B } from "@/lib/brand";
+import { useEffect } from "react";
 
 export default function NotFound() {
+  useEffect(() => {
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 2000)
+  }, [])
+
   return (
     <div className="min-h-screen bg-brand-black text-brand-cream flex flex-col items-center justify-center px-6 relative overflow-hidden">
 
@@ -44,7 +52,7 @@ export default function NotFound() {
 
         {/* Title */}
         <h2 className="font-serif font-black text-[32px] sm:text-[40px] tracking-[-1px] mb-4">
-          This Page Has Wandered Off
+          This Page Does Not Exist! <br /> Going Home now!
         </h2>
 
         {/* Description */}

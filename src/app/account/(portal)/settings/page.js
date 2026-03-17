@@ -7,7 +7,7 @@ import { B }           from "@/lib/brand";
 
 export default function SettingsPage() {
   const { customer, refreshCustomer } = useCustomer();
-
+  console.log('/accout/(portal)/settings Customer', customer);
   const [profile,  setProfile ] = useState({ name: customer?.name ?? "", email: customer?.email ?? "", phone: customer?.phone ?? "" });
   const [passwords, setPasswords] = useState({ current: "", newPass: "", confirm: "" });
   const [saving,   setSaving  ] = useState(null);   // null | "profile" | "password"
@@ -19,6 +19,14 @@ export default function SettingsPage() {
   };
 
   const handleSaveProfile = async () => {
+    if (!profile.name.trim()) {
+      showMsg("error", "Name cannot be empty.");
+      return;
+    }
+    if (profile.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email.trim())) {
+      showMsg("error", "Please enter a valid email address.");
+      return;
+    }
     setSaving("profile");
     try {
       const res  = await fetch("/api/customers/me", {
@@ -106,7 +114,7 @@ export default function SettingsPage() {
           <div>
             <Label>Phone <span className="font-normal normal-case tracking-normal">(optional)</span></Label>
             <input type="tel" value={profile.phone} onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))}
-              className={inputCls} placeholder="(256) 555-0100" />
+              className={inputCls} placeholder={"(256) 555-0100"} />
           </div>
           <button onClick={handleSaveProfile} disabled={saving === "profile"}
             className="self-start font-sans font-extrabold text-[11px] tracking-[1.5px] uppercase bg-brand-orange text-brand-cream border-2 border-brand-black px-6 py-3 cursor-pointer shadow-retro-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none transition-all">
