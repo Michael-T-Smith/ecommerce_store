@@ -3,7 +3,8 @@ import pool         from "@/lib/db";
 import ProductDetail from "./ProductDetail";
 
 export async function generateMetadata({ params }) {
-  const { id } = await params
+  let { id } = await params;
+  id = parseInt(id, 10);
   if (isNaN(id)) return { title: "Product Not Found — Lamb's Florist" };
 
   try {
@@ -22,15 +23,16 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function ShopProductPage({ params }) {
-  const { id } = await params;
+  let { id } = await params;
+  id = parseInt(id, 10);
   if (isNaN(id)) notFound();
 
   // Run main + related queries in parallel
   const [mainResult, relatedResult] = await Promise.all([
     pool.query(
       `SELECT id, sku, name, description,
-              price, category, tag, emoji,
-              sizes, supplier, image_path,
+              prices, category, tag, emoji,
+              sizes, supplier,
               stock_count, in_stock
        FROM inventory
        WHERE id = $1
@@ -42,8 +44,8 @@ export default async function ShopProductPage({ params }) {
     // We pass id twice: once to exclude the current product, once to
     // find its category via a correlated lookup.
     pool.query(
-      `SELECT i.id, i.name, image_path, i.price, i.emoji,
-              i.category, i.tag, i.sizes, i.in_stock
+      `SELECT i.id, i.name, i.prices, i.emoji,
+              i.category, i.tag, i.sizes, i.in_stock, i.prices
        FROM inventory i
        WHERE i.category = (
          SELECT category FROM inventory WHERE id = $1
@@ -66,11 +68,10 @@ export default async function ShopProductPage({ params }) {
     sku       : row.sku,
     name      : row.name,
     description: row.description ?? null,
-    price     : Number(row.price),
+    prices    : Array.isArray(row.prices) ? row.prices.map(Number) : [0],
     category  : row.category,
     tag       : row.tag ?? null,
     emoji     : row.emoji ?? "💐",
-    image_path : row.image_path ?? null,
     sizes     : row.sizes,                   // TEXT[] — already a JS array via pg
     supplier  : row.supplier ?? null,
     stockCount: row.stock_count,
@@ -80,9 +81,8 @@ export default async function ShopProductPage({ params }) {
   const related = relatedResult.rows.map((r) => ({
     id      : r.id,
     name    : r.name,
-    price   : Number(r.price),
+    prices  : Array.isArray(r.prices) ? r.prices.map(Number) : [0],
     emoji   : r.emoji ?? "💐",
-    image_path   : r.image_path ?? null,
     category: r.category,
     tag     : r.tag ?? null,
     sizes   : r.sizes,

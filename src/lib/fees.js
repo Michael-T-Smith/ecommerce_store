@@ -36,6 +36,10 @@
 //      STRIPE_CONNECTED_ACCOUNT_ID=acct_...   ← Cecelia's connected account ID
 // 5. Swap sk_test/pk_test → sk_live/pk_live when ready to take real payments
 
+// Flat delivery fee — applied to all delivery orders regardless of location.
+// Change this one number to update the fee everywhere.
+export const DELIVERY_FEE = 10;        // $10 flat
+
 export const STRIPE_PCT   = 0.029;  // 2.9%  — Stripe's cut
 export const STRIPE_FIXED = 0.30;   // $0.30 — Stripe's fixed fee
 export const PLATFORM_PCT = 0.03;   // 3.0%  — your platform fee

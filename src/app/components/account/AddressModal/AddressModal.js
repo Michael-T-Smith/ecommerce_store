@@ -1,15 +1,7 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { B }                   from "@/lib/brand";
-
-const ZONES = [
-  { value: "",         label: "Select zone…"  },
-  { value: "piedmont", label: "Piedmont"       },
-  { value: "anniston", label: "Anniston"       },
-  { value: "centre",   label: "Centre"         },
-];
 
 export default function AddressModal({ mode, address, onSave, onClose }) {
   const [form, setForm] = useState({
@@ -18,7 +10,6 @@ export default function AddressModal({ mode, address, onSave, onClose }) {
     city       : "",
     state      : "AL",
     zip        : "",
-    zone       : "",
     isDefault  : false,
   });
   const [saving, setSaving] = useState(false);
@@ -33,7 +24,6 @@ export default function AddressModal({ mode, address, onSave, onClose }) {
         city       : address.city        ?? "",
         state      : address.state       ?? "AL",
         zip        : address.zip         ?? "",
-        zone       : address.zone        ?? "",
         isDefault  : address.isDefault   ?? false,
       });
     }
@@ -148,20 +138,6 @@ export default function AddressModal({ mode, address, onSave, onClose }) {
                 <input value={form.zip} onChange={set("zip")} className={inputCls} placeholder="36272" maxLength={10} />
               </div>
             </div>
-          </div>
-
-          {/* Delivery zone */}
-          <div>
-            <Label>Delivery Zone <span className="font-normal normal-case tracking-normal">(optional)</span></Label>
-            <select value={form.zone} onChange={set("zone")}
-              className={`${inputCls} cursor-pointer appearance-none`}>
-              {ZONES.map((z) => (
-                <option key={z.value} value={z.value}>{z.label}</option>
-              ))}
-            </select>
-            <p className="font-sans text-[11px] text-brand-smoke/60 mt-1.5 leading-relaxed">
-              Helps us calculate delivery fees at checkout. Leave blank if unsure.
-            </p>
           </div>
 
           {/* Default toggle */}

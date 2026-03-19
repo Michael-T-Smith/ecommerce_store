@@ -1,10 +1,3 @@
-// src/app/shop/[id]/ProductDetail.js
-//
-// "use client" — handles all interactive parts: size selection, qty,
-// add-to-bag, and the related products strip.
-//
-// Receives `product` and `related` as serialised props from the server page.
-
 "use client";
 
 import { useState, useCallback }  from "react";
@@ -15,7 +8,7 @@ import Navbar           from "@/app/components/Navbar/Navbar";
 import Footer           from "@/app/components/Footer/Footer";
 import { useCart }      from "@/app/CartContext";
 import { B }            from "@/lib/brand";
-import Image from "next/image";
+
 // ── Small helper: stock status pill ─────────────────────────────────────────
 function StockPill({ inStock, stockCount }) {
   if (!inStock) {
@@ -81,7 +74,7 @@ function RelatedCard({ item }) {
           </div>
         </Link>
         <div className="flex items-center justify-between mt-3">
-          <span className="font-sans font-black text-[18px] text-brand-orange">${item.price}</span>
+          <span className="font-sans font-black text-[18px] text-brand-orange">{item.prices?.length > 1 ? "from " : ""}${item.prices?.[0] ?? item.price ?? 0}</span>
           {item.inStock && (
             single ? (
               <button
@@ -114,6 +107,18 @@ export default function ProductDetail({ product, related }) {
   const [selectedSize, setSelectedSize] = useState(
     multiSize ? null : (product.sizes?.[0] ?? null)
   );
+
+  // Resolve displayed price from prices[sizes.indexOf(selectedSize)]
+  // Falls back to prices[0] when no size chosen yet.
+  const resolveDisplayPrice = (size) => {
+    const prices = product.prices;
+    const sizes  = product.sizes;
+    if (!Array.isArray(prices) || prices.length === 0) return product.price ?? 0;
+    if (!size || !Array.isArray(sizes)) return prices[0] ?? 0;
+    const idx = sizes.indexOf(size);
+    return idx !== -1 ? (prices[idx] ?? prices[0] ?? 0) : (prices[0] ?? 0);
+  };
+  const displayPrice = resolveDisplayPrice(selectedSize);
   const [qty, setQty] = useState(1);
 
   // Cart entries for this product
@@ -189,8 +194,9 @@ export default function ProductDetail({ product, related }) {
                 <span
                   className={`text-[160px] leading-none select-none ${
                     !product.inStock ? "opacity-40 grayscale" : ""
-                  }`}> 
-                    {product.image_path ? <Image src={product.image_path} alt="Product Image" height={450} width={450}  /> : product.emoji}
+                  }`}
+                >
+                  {product.emoji}
                 </span>
               </div>
 
@@ -257,7 +263,7 @@ export default function ProductDetail({ product, related }) {
             {/* Price */}
             <div className="flex items-baseline gap-4">
               <span className="font-sans font-black text-[40px] text-brand-orange leading-none">
-                ${product.price}
+                {!selectedSize && product.prices?.length > 1 ? "from " : ""}${displayPrice}
               </span>
               {product.sizes?.length <= 1 && product.sizes?.[0] && product.sizes[0] !== "Standard" && (
                 <span className="font-sans text-[13px] text-brand-smoke">

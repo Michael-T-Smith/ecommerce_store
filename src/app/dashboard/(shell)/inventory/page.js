@@ -29,8 +29,8 @@ function remapItem(row) {
     sku               : row.sku,
     name              : row.name,
     description       : row.description,
-    price             : Number(row.price),
-    costPrice         : Number(row.cost_price),
+    prices            : Array.isArray(row.prices) ? row.prices.map(Number) : [0],
+    costPrices        : Array.isArray(row.cost_prices) ? row.cost_prices.map(Number) : [0],
     category          : row.category,
     tag               : row.tag,
     emoji             : row.emoji,
@@ -63,7 +63,7 @@ export default function InventoryPage() {
   const canCreate = canDo(user.role, "inventory", "create");
   const canEdit   = canDo(user.role, "inventory", "update");
   const canDelete = canDo(user.role, "inventory", "delete");
-  
+
   const load = useCallback(async () => {
     try {
       setLoading(true);
@@ -151,6 +151,7 @@ export default function InventoryPage() {
 
   if (loading) return <PageSpinner label="Loading Inventory" />;
   if (apiError) return <PageError message={apiError} onRetry={load} />;
+
   return (
     <div className="flex flex-col gap-6">
 

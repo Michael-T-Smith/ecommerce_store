@@ -15,8 +15,8 @@ import Navbar           from "@/app/components/Navbar/Navbar";
 import Footer           from "@/app/components/Footer/Footer";
 import { useCart }      from "@/app/CartContext";
 import { B }            from "@/lib/brand";
-import { DELIVERY_ZONES, getDeliveryFee } from "@/lib/deliveryZones";
-import { calcProcessingFee }              from "@/lib/fees";
+
+import { calcProcessingFee, DELIVERY_FEE } from "@/lib/fees";
 
 // Stripe singleton — outside component so it's never re-created on render
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -259,7 +259,6 @@ export default function CheckoutPage() {
     city           : "",
     state          : "AL",
     zip            : "",
-    deliveryZone   : "",
     deliveryDate   : getTomorrowDate(),
     deliveryWindow : "morning",
     // pickup
@@ -304,7 +303,6 @@ export default function CheckoutPage() {
                 city        : addr.city          || f.city,
                 state       : addr.state         || f.state,
                 zip         : addr.zip           || f.zip,
-                deliveryZone: addr.zone          || f.deliveryZone,
               }));
             }
           });
@@ -318,10 +316,7 @@ export default function CheckoutPage() {
   };
 
   // Derived totals
-  const deliveryFee = useMemo(
-    () => (fulfillment === "delivery" ? getDeliveryFee(form.deliveryZone) : 0),
-    [fulfillment, form.deliveryZone]
-  );
+  const deliveryFee = fulfillment === "delivery" ? DELIVERY_FEE : 0;
   const orderTotal = useMemo(() => subtotal + deliveryFee, [subtotal, deliveryFee]);
 
   // Gross-up: customer pays enough so merchant nets orderTotal exactly
@@ -342,7 +337,6 @@ export default function CheckoutPage() {
       if (!form.addressLine.trim()) e.addressLine  = "Street address is required.";
       if (!form.city.trim())        e.city         = "City is required.";
       if (!form.zip.trim())         e.zip          = "ZIP code is required.";
-      if (!form.deliveryZone)       e.deliveryZone = "Please select a delivery zone.";
       if (!form.deliveryDate)       e.deliveryDate = "Please select a delivery date.";
       else {
         const day = new Date(form.deliveryDate + "T12:00:00").getDay();
@@ -422,7 +416,6 @@ export default function CheckoutPage() {
       processingFee  : processingFee,
       fulfillmentType: fulfillment,
       deliveryAddress,
-      deliveryZone   : fulfillment === "delivery" ? form.deliveryZone   : null,
       deliveryDate   : fulfillment === "delivery" ? form.deliveryDate   : null,
       deliveryWindow : fulfillment === "delivery" ? form.deliveryWindow : null,
       pickupDate     : fulfillment === "pickup"   ? form.pickupDate     : null,
@@ -525,9 +518,7 @@ export default function CheckoutPage() {
                         emoji   : "🚐",
                         label   : "Delivery",
                         sub     : "We bring it to your door",
-                        feeNote : form.deliveryZone
-                          ? `+$${getDeliveryFee(form.deliveryZone).toFixed(2)} fee`
-                          : "Fee based on zone",
+                        feeNote : `+$${DELIVERY_FEE} flat delivery fee`,
                       },
                       {
                         value   : "pickup",
@@ -646,21 +637,6 @@ export default function CheckoutPage() {
                             onChange={(e) => setField("zip", e.target.value.replace(/\D/g, ""))} />
                           <FieldError msg={errors.zip} />
                         </div>
-                      </div>
-
-                      <div className="sm:col-span-2">
-                        <Label required>Delivery Zone</Label>
-                        <select value={form.deliveryZone}
-                          className={`${inputCls} cursor-pointer ${errors.deliveryZone ? "border-red-400" : ""}`}
-                          onChange={(e) => setField("deliveryZone", e.target.value)}>
-                          <option value="">Select your area…</option>
-                          {DELIVERY_ZONES.map((z) => (
-                            <option key={z.value} value={z.value}>
-                              {z.label} — ${z.fee.toFixed(2)} delivery fee
-                            </option>
-                          ))}
-                        </select>
-                        <FieldError msg={errors.deliveryZone} />
                       </div>
 
                       <div>
@@ -913,9 +889,6 @@ export default function CheckoutPage() {
                         weekday: "short", month: "short", day: "numeric",
                       })}</>
                     )}
-                    {fulfillment === "delivery" && form.deliveryZone && (
-                      <> · {DELIVERY_ZONES.find((z) => z.value === form.deliveryZone)?.label}</>
-                    )}
                   </div>
                 </div>
 
@@ -932,20 +905,16 @@ export default function CheckoutPage() {
                       {fulfillment === "pickup" ? "Delivery" : "Delivery fee"}
                     </span>
                     <span className={`font-sans font-extrabold text-[13px] ${
-                      fulfillment === "pickup"
-                        ? "text-brand-orange"
-                        : form.deliveryZone ? "text-brand-black" : "text-brand-smoke/40"
+                      fulfillment === "pickup" ? "text-brand-orange" : "text-brand-black"
                     }`}>
-                      {fulfillment === "pickup"
-                        ? "Free"
-                        : form.deliveryZone ? `$${deliveryFee.toFixed(2)}` : "—"}
+                      {fulfillment === "pickup" ? "Free" : `$${DELIVERY_FEE}.00`}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="font-sans text-[12px] text-brand-smoke flex items-center gap-1">
                       Processing fee
                       <span
-                        title="Covers card processing (2.9% + $0.30) and platform fee (3%)"
+                        title="Card processing and Web Platform fee"
                         className="w-3.5 h-3.5 rounded-full border border-brand-smoke/40 flex items-center justify-center font-sans font-black text-[8px] text-brand-smoke/60 cursor-default flex-shrink-0"
                       >?</span>
                     </span>

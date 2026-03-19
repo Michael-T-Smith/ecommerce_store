@@ -1,13 +1,12 @@
-
 "use client";
- 
+
 import Link              from "next/link";
 import { usePathname }   from "next/navigation";
 import FlowerMark        from "@/app/components/icons/FlowerMark";
 import { B }             from "@/lib/brand";
 import { useDashboardSession } from "@/app/dashboard/SessionContext";
 import { canDo }         from "@/lib/permissions";
- 
+
 const NAV_SECTIONS = [
   {
     group: "Overview",
@@ -16,6 +15,7 @@ const NAV_SECTIONS = [
         label   : "Dashboard",
         href    : "/dashboard",
         resource: null,
+        isActive: true,
         exact   : true,
         icon    : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -36,6 +36,7 @@ const NAV_SECTIONS = [
         label   : "Inventory",
         href    : "/dashboard/inventory",
         resource: "inventory",
+        isActive: true,
         icon    : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -47,6 +48,7 @@ const NAV_SECTIONS = [
         label   : "Orders",
         href    : "/dashboard/orders",
         resource: "orders",
+        isActive: true,
         icon    : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -57,9 +59,24 @@ const NAV_SECTIONS = [
         ),
       },
       {
+        label   : "Zones",
+        href    : "/dashboard/zones",
+        resource: "delivery",
+        isActive: false,
+        adminOnly: true,
+        icon    : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+            <circle cx="12" cy="9" r="2.5" />
+          </svg>
+        ),
+      },
+      {
         label   : "Delivery",
         href    : "/dashboard/delivery",
         resource: "delivery",
+        isActive: true,
         icon    : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -79,6 +96,8 @@ const NAV_SECTIONS = [
         label   : "Employees",
         href    : "/dashboard/employees",
         resource: "employees",
+        isActive: true,
+        adminOnly: true,
         icon    : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -98,6 +117,7 @@ const NAV_SECTIONS = [
         label   : "Analytics",
         href    : "/dashboard/analytics",
         resource: "reports",
+        isActive: true,
         icon    : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -110,18 +130,18 @@ const NAV_SECTIONS = [
     ],
   },
 ];
- 
+
 export default function DashboardSidebar() {
   const pathname   = usePathname();
   const { user }   = useDashboardSession();
- 
+
   function isActive(href, exact) {
     return exact ? pathname === href : pathname.startsWith(href);
   }
- 
+
   return (
     <aside className="hidden md:flex flex-col w-[240px] flex-shrink-0 bg-brand-bark border-r-[3px] border-brand-black overflow-y-auto">
- 
+
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-5 border-b-[2px] border-brand-cream/10">
         <div className="w-9 h-9 bg-brand-orange rounded-full border-2 border-brand-cream flex items-center justify-center flex-shrink-0">
@@ -136,15 +156,18 @@ export default function DashboardSidebar() {
           </div>
         </div>
       </div>
- 
+
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 flex flex-col gap-5">
         {NAV_SECTIONS.map((section) => {
           const visible = section.items.filter(
-            (item) => !item.resource || canDo(user.role, item.resource, "read")
+            (item) => {
+              if ((item.adminOnly && user.role !== "admin") || !item.isActive) return false;
+              return !item.resource || canDo(user.role, item.resource, "read");
+            }
           );
           if (visible.length === 0) return null;
- 
+
           return (
             <div key={section.group}>
               <div className="font-sans font-extrabold text-[9px] tracking-[2px] uppercase text-brand-cream/30 px-3 mb-2">
@@ -175,7 +198,7 @@ export default function DashboardSidebar() {
           );
         })}
       </nav>
- 
+
       {/* Bottom: user info */}
       <div className="border-t-[2px] border-brand-cream/10 px-4 py-4">
         <div className="font-sans font-extrabold text-[12px] text-brand-cream leading-tight truncate">

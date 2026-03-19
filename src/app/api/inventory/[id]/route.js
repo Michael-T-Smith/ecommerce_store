@@ -1,21 +1,24 @@
-import pool                        from "@/lib/db";
-import { getServerUser }           from "@/lib/getRequestUser";
-import { canDo }                   from "@/lib/permissions";
-import { ok, badRequest, forbidden, notFound, serverError } from "@/lib/apiHelpers";
+import pool                from "@/lib/db";
+import { getServerUser }   from "@/lib/getRequestUser";
+import { canDo }           from "@/lib/permissions";
+import {
+  ok, badRequest, forbidden, notFound, serverError,
+} from "@/lib/apiHelpers";
 
 export async function GET(_request, { params }) {
+  const { id } = await params;
   try {
     const user = await getServerUser();
     if (!user)                                  return forbidden("Not authenticated.");
     if (!canDo(user.role, "inventory", "read")) return forbidden();
 
     const result = await pool.query(
-      `SELECT id, sku, name, description, price, cost_price, category, tag,
+      `SELECT id, sku, name, description, prices, cost_prices, category, tag,
               emoji, sizes, supplier, stock_count, low_stock_threshold,
               in_stock, is_featured, featured_accent,
               created_at, updated_at
        FROM inventory WHERE id = $1`,
-      [parseInt(params.id)]
+      [parseInt(id)]
     );
 
     if (result.rowCount === 0) return notFound("Inventory item not found.");
@@ -26,26 +29,41 @@ export async function GET(_request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
+  let { id } = await params;
   try {
     const user = await getServerUser();
     if (!user)                                    return forbidden("Not authenticated.");
     if (!canDo(user.role, "inventory", "update")) return forbidden();
 
-    const { id }   = await params;
+    id   = parseInt(id);
     const body = await request.json();
 
-    const ALLOWED      = ["name","description","price","cost_price","category",
-                          "tag","emoji","sizes","supplier","stock_count",
-                          "low_stock_threshold","in_stock",
-                          "is_featured","featured_accent"];
+    // Validate sizes/prices alignment if both are being updated
+    if (
+      (body.sizes || body.prices) &&
+      body.sizes && body.prices &&
+      body.sizes.length !== body.prices.length
+    ) {
+      return badRequest(
+        `prices (${body.prices.length}) and sizes (${body.sizes.length}) must be the same length.`
+      );
+    }
+
+    const ALLOWED      = [
+      "name", "description", "prices", "cost_prices", "category",
+      "tag", "emoji", "sizes", "supplier",
+      "stock_count", "low_stock_threshold", "in_stock",
+      "is_featured", "featured_accent",
+    ];
     const camelToSnake = {
-      costPrice        : "cost_price",
-      stockCount       : "stock_count",
-      lowStockThreshold: "low_stock_threshold",
-      inStock          : "in_stock",
-      isFeatured       : "is_featured",
-      featuredAccent   : "featured_accent",
+      costPrices        : "cost_prices",
+      stockCount        : "stock_count",
+      lowStockThreshold : "low_stock_threshold",
+      inStock           : "in_stock",
+      isFeatured        : "is_featured",
+      featuredAccent    : "featured_accent",
     };
+
     const sets = [], values = [];
     let   p    = 1;
 
@@ -70,6 +88,7 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(_request, { params }) {
+  const { id } = await params;
   try {
     const user = await getServerUser();
     if (!user)                                    return forbidden("Not authenticated.");
@@ -77,7 +96,7 @@ export async function DELETE(_request, { params }) {
 
     const result = await pool.query(
       "DELETE FROM inventory WHERE id = $1 RETURNING id, name",
-      [parseInt(params.id)]
+      [parseInt(id)]
     );
 
     if (result.rowCount === 0) return notFound("Inventory item not found.");

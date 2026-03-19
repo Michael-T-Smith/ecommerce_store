@@ -8,40 +8,65 @@ export const metadata = {
 
 export const revalidate = 60;
 
-function dbRowToFeaturedItem(row) {
+// Snake_case DB row → camelCase frontend item
+// Used for both featured and catalog items — same shape either way.
+function dbRowToItem(row) {
   return {
     id            : row.id,
     sku           : row.sku,
     name          : row.name,
     description   : row.description   ?? "",
-    price         : Number(row.price),
+    prices        : Array.isArray(row.prices) ? row.prices.map(Number) : [0],
     category      : row.category,
     tag           : row.tag           ?? null,
     emoji         : row.emoji         ?? "🌸",
     sizes         : Array.isArray(row.sizes) ? row.sizes : [],
     inStock       : Boolean(row.in_stock),
-    stockCount    : Number(row.stock_count ?? 0),
-    featuredAccent: row.featured_accent ?? "#D4511A",
+    stockCount    : Number(row.stock_count  ?? 0),
+    featuredAccent: row.featured_accent     ?? "#D4511A",
   };
 }
 
+const ITEM_COLS = `
+  id, sku, name, description, prices, category, tag,
+  emoji, sizes, stock_count, in_stock, featured_accent
+`;
+
 export default async function HomePage() {
   let featuredItems = [];
+  let catalogItems  = [];
 
   try {
-    const result = await pool.query(
-      `SELECT id, sku, name, description, price, category, tag,
-              emoji, sizes, stock_count, in_stock, featured_accent
-       FROM inventory
-       WHERE is_featured = TRUE AND in_stock = TRUE
-       ORDER BY updated_at DESC
-       LIMIT 3`
-    );
-    featuredItems = result.rows.map(dbRowToFeaturedItem);
+    // Both queries run in parallel — no sequential waterfall
+    const [featuredResult, catalogResult] = await Promise.all([
+      pool.query(
+        `SELECT ${ITEM_COLS}
+         FROM inventory
+         WHERE is_featured = TRUE AND in_stock = TRUE
+         ORDER BY updated_at DESC
+         LIMIT 3`
+      ),
+      pool.query(
+        // In-stock items first, then out-of-stock — matches the old mock order.
+        // Limit 8 for the homepage preview strip.
+        `SELECT ${ITEM_COLS}
+         FROM inventory
+         ORDER BY in_stock DESC, category ASC, name ASC
+         LIMIT 8`
+      ),
+    ]);
+
+    featuredItems = featuredResult.rows.map(dbRowToItem);
+    catalogItems  = catalogResult.rows.map(dbRowToItem);
   } catch (err) {
-    // DB error — homepage still renders, featured section shows fallback
-    console.error("[HomePage] Failed to load featured items:", err.message);
+    // DB unreachable — homepage renders with empty sections rather than crashing
+    console.error("[HomePage] DB error:", err.message);
   }
 
-  return <HomePageClient featuredItems={featuredItems} />;
+  return (
+    <HomePageClient
+      featuredItems={featuredItems}
+      catalogItems={catalogItems}
+    />
+  );
 }

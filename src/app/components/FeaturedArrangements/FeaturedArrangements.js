@@ -146,7 +146,7 @@ export default function FeaturedArrangements({ items = [] }) {
 
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <span className="font-sans font-black text-[24px] text-brand-orange">
-                    ${item.price}
+                    {item.prices?.length > 1 ? "from " : ""}${item.prices?.[0] ?? item.price ?? 0}
                   </span>
                   <div className="flex items-center gap-2">
                     <Link

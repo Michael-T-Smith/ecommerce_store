@@ -7,7 +7,7 @@ import AnnouncementBar  from "@/app/components/AnnouncementBar/AnnouncementBar";
 import Navbar           from "@/app/components/Navbar/Navbar";
 import Footer           from "@/app/components/Footer/Footer";
 import { B }            from "@/lib/brand";
-import { DELIVERY_ZONES } from "@/lib/deliveryZones";
+// Zone label shown as stored — works for any custom zone value
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(dateStr) {
@@ -75,7 +75,10 @@ export default function OrderConfirmationPage() {
     } catch { return []; }
   })();
 
-  const zoneLabel       = DELIVERY_ZONES.find((z) => z.value === order?.delivery_zone)?.label ?? order?.delivery_zone;
+  // delivery_zone is stored as a readable slug — display as-is or capitalised
+  const zoneLabel = order?.delivery_zone
+    ? order.delivery_zone.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+    : '—';
   const isPickup        = order?.fulfillment_type === "pickup";
   const fulfillmentDate = isPickup ? order?.delivery_date : order?.delivery_date;
 

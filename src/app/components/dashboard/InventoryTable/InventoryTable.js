@@ -1,5 +1,6 @@
 "use client";
 
+import { canDo }  from "@/lib/permissions";
 import { B }      from "@/lib/brand";
 
 // Stock status badge
@@ -108,8 +109,33 @@ export default function InventoryTable({
                 {/* Price / Cost */}
                 <td className="px-4 py-3">
                   <div>
-                    <div className="font-sans font-black text-[14px] text-brand-black">${item.price}</div>
-                    <div className="font-sans text-[11px] text-brand-smoke">cost ${item.costPrice}</div>
+                    {/* Show from–to range when sizes have different prices */}
+                    {(() => {
+                      const prices = item.prices ?? [];
+                      const sorted = [...prices].sort((a, b) => a - b);
+                      const lo = sorted[0] ?? 0;
+                      const hi = sorted[sorted.length - 1] ?? 0;
+                      return (
+                        <div className="font-sans font-black text-[14px] text-brand-black">
+                          {lo === hi ? `$${lo}` : `$${lo} – $${hi}`}
+                        </div>
+                      );
+                    })()}
+                    {(() => {
+                      const costs = item.costPrices ?? [];
+                      const lo = Math.min(...costs);
+                      const hi = Math.max(...costs);
+                      return (
+                        <div className="font-sans text-[11px] text-brand-smoke">
+                          cost {lo === hi ? `$${lo}` : `$${lo} – $${hi}`}
+                        </div>
+                      );
+                    })()}
+                    {item.sizes?.length > 1 && (
+                      <div className="font-sans text-[9px] text-brand-smoke/50 tracking-[0.5px] mt-0.5">
+                        {item.sizes.map((s, i) => `${s}: $${item.prices?.[i] ?? "?"}`).join(" · ")}
+                      </div>
+                    )}
                   </div>
                 </td>
 

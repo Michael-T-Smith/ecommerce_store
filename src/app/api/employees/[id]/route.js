@@ -10,7 +10,7 @@ export async function PATCH(request, { params }) {
     if (!user)                                    return forbidden("Not authenticated.");
     if (!canDo(user.role, "employees", "update")) return forbidden();
 
-    const id   = parseInt(params.id);
+    const { id }   = await params;
     const body = await request.json();
 
     const ALLOWED      = ["name","email","phone","role","status","hire_date"];
@@ -52,7 +52,7 @@ export async function DELETE(_request, { params }) {
     if (!user)                                    return forbidden("Not authenticated.");
     if (!canDo(user.role, "employees", "delete")) return forbidden();
 
-    const id = parseInt(params.id);
+    const { id } = await params;
 
     // Prevent deleting yourself
     if (String(id) === String(user.id))

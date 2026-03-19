@@ -1,8 +1,3 @@
-// src/app/HomePageClient.js
-//
-// "use client" shell — owns cartCount and themeKey state.
-// Receives featuredItems from the server component (page.js).
-
 "use client";
 
 import { useState }          from "react";
@@ -16,7 +11,7 @@ import PromoBand             from "@/app/components/PromoBand/PromoBand";
 import Footer                from "@/app/components/Footer/Footer";
 import { HERO_THEMES }       from "@/lib/themes";
 
-export default function HomePageClient({ featuredItems = [] }) {
+export default function HomePageClient({ featuredItems = [], catalogItems = [] }) {
   const [themeKey, setThemeKey] = useState("default");
   const theme = HERO_THEMES[themeKey];
 
@@ -27,7 +22,7 @@ export default function HomePageClient({ featuredItems = [] }) {
       <HeroSection theme={theme} />
       <OccasionsTicker />
       <FeaturedArrangements items={featuredItems} />
-      <CatalogSection />
+      <CatalogSection items={catalogItems} />
       <PromoBand />
       <Footer />
     </div>

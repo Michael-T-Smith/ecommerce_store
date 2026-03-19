@@ -4,14 +4,12 @@ import { useState, useEffect }  from "react";
 import { INVENTORY_CATEGORIES, INVENTORY_TAGS, INVENTORY_SUPPLIERS } from "@/lib/inventoryData";
 import { B } from "@/lib/brand";
 
-const SIZES_OPTIONS = ["Small", "Standard", "Large", "XL"];
-
 const EMPTY_FORM = {
   name        : "",
   sku         : "",
   category    : "Bouquets",
-  price       : "",
-  costPrice   : "",
+  prices      : [""],   // one entry per size — parallel to sizes[]
+  costPrices  : [""],   // one entry per size — parallel to sizes[]
   tag         : "None",
   emoji       : "💐",
   description : "",
@@ -25,8 +23,9 @@ const EMPTY_FORM = {
 };
 
 export default function InventoryModal({ mode, item, onSave, onClose }) {
-  const [form,   setForm  ] = useState(EMPTY_FORM);
-  const [errors, setErrors] = useState({});
+  const [form,      setForm     ] = useState(EMPTY_FORM);
+  const [errors,    setErrors   ] = useState({});
+  const [sizeInput, setSizeInput] = useState("");
 
   // Pre-fill form in edit mode
   useEffect(() => {
@@ -35,14 +34,12 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
         name             : item.name              || "",
         sku              : item.sku               || "",
         category         : item.category          || "Bouquets",
-        price            : String(item.price)     || "",
-        costPrice        : String(item.costPrice) || "",
+        prices           : (item.prices     ?? [0]).map(String),
+        costPrices       : (item.costPrices ?? [0]).map(String),
         tag              : item.tag               || "None",
         emoji            : item.emoji             || "💐",
         description      : item.description       || "",
         sizes            : item.sizes             || ["Standard"],
-        sizes_multiplier : item.sizes_multiplier  || [1],
-        image_path       : item.image_path        || "",
         supplier         : item.supplier          || "Piedmont Valley Growers",
         stockCount       : String(item.stockCount) || "0",
         lowStockThreshold: String(item.lowStockThreshold) || "2",
@@ -61,12 +58,30 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
     setErrors((e) => ({ ...e, [field]: null }));
   };
 
-  const toggleSize = (size) => {
+  // Add a custom size name — appends aligned empty price entries
+  const addSize = () => {
+    const name = sizeInput.trim();
+    if (!name) return;
+    if (form.sizes.includes(name)) {
+      setSizeInput("");
+      return; // silently skip duplicates
+    }
     setForm((f) => ({
       ...f,
-      sizes: f.sizes.includes(size)
-        ? f.sizes.filter((s) => s !== size)
-        : [...f.sizes, size],
+      sizes      : [...f.sizes, name],
+      prices     : [...f.prices, ""],
+      costPrices : [...f.costPrices, ""],
+    }));
+    setSizeInput("");
+  };
+
+  // Remove a size at index idx — also removes corresponding price entries
+  const removeSize = (idx) => {
+    setForm((f) => ({
+      ...f,
+      sizes      : f.sizes.filter((_, i) => i !== idx),
+      prices     : f.prices.filter((_, i) => i !== idx),
+      costPrices : f.costPrices.filter((_, i) => i !== idx),
     }));
   };
 
@@ -74,10 +89,11 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
     const e = {};
     if (!form.name.trim())         e.name      = "Name is required";
     if (!form.sku.trim())          e.sku       = "SKU is required";
-    if (!form.price || isNaN(form.price) || Number(form.price) <= 0)
-                                    e.price     = "Valid price required";
-    if (!form.costPrice || isNaN(form.costPrice) || Number(form.costPrice) < 0)
-                                    e.costPrice = "Valid cost required";
+    // Every size must have a valid sale price
+    const badPrices = form.prices.some((p) => !p || isNaN(p) || Number(p) <= 0);
+    if (badPrices) e.prices = "All sizes need a valid sale price (> 0)";
+    const badCosts  = form.costPrices.some((p) => isNaN(p) || Number(p) < 0);
+    if (badCosts)  e.costPrices = "All sizes need a valid cost price (≥ 0)";
     if (form.sizes.length === 0)   e.sizes     = "Select at least one size";
     if (!form.description.trim())  e.description = "Description is required";
     return e;
@@ -88,13 +104,12 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     onSave({
       ...form,
-      price            : Number(form.price),
-      costPrice        : Number(form.costPrice),
+      prices           : form.prices.map((p) => Math.round(Number(p))),
+      costPrices       : form.costPrices.map((p) => Math.round(Number(p))),
       stockCount       : Number(form.stockCount),
       lowStockThreshold: Number(form.lowStockThreshold),
       tag              : form.tag === "None" ? null : form.tag,
       isFeatured       : form.isFeatured,
-      image_path       : `${form.category/form.name}.png`,
       featuredAccent   : form.featuredAccent,
     });
   };
@@ -161,15 +176,52 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
                 onChange={(e) => set("sku", e.target.value.toUpperCase())} placeholder="e.g. BQ-001" />
             </Field>
 
-            <Field label="Sale Price ($) *" error={errors.price}>
-              <input type="number" min="0" step="0.01" className={inputCls(errors.price)}
-                value={form.price} onChange={(e) => set("price", e.target.value)} placeholder="52" />
-            </Field>
-
-            <Field label="Cost Price ($) *" error={errors.costPrice}>
-              <input type="number" min="0" step="0.01" className={inputCls(errors.costPrice)}
-                value={form.costPrice} onChange={(e) => set("costPrice", e.target.value)} placeholder="18" />
-            </Field>
+            {/* Per-size price editor — shown after sizes are chosen */}
+            <div className="sm:col-span-2">
+              {errors.prices && (
+                <p className="font-sans text-[11px] text-red-500 mb-2">{errors.prices}</p>
+              )}
+              <div className="flex flex-col gap-2">
+                {form.sizes.map((size, i) => (
+                  <div key={size} className="flex items-center gap-3">
+                    <span className="font-sans font-extrabold text-[11px] tracking-[1px] uppercase text-brand-smoke w-[80px] flex-shrink-0">
+                      {size}
+                    </span>
+                    <div className="flex-1">
+                      <label className="block font-sans font-extrabold text-[9px] tracking-[1.5px] uppercase text-brand-smoke/60 mb-1">Sale $</label>
+                      <input
+                        type="number" min="0" step="1"
+                        placeholder="e.g. 52"
+                        className={inputCls(errors.prices)}
+                        value={form.prices[i] ?? ""}
+                        onChange={(e) => {
+                          const next = [...form.prices];
+                          next[i] = e.target.value;
+                          set("prices", next);
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block font-sans font-extrabold text-[9px] tracking-[1.5px] uppercase text-brand-smoke/60 mb-1">Cost $</label>
+                      <input
+                        type="number" min="0" step="1"
+                        placeholder="e.g. 18"
+                        className={inputCls(errors.costPrices)}
+                        value={form.costPrices[i] ?? ""}
+                        onChange={(e) => {
+                          const next = [...form.costPrices];
+                          next[i] = e.target.value;
+                          set("costPrices", next);
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="font-sans text-[10px] text-brand-smoke/50 mt-2">
+                Sale and cost price for each size — whole dollar amounts.
+              </p>
+            </div>
 
             <Field label="Category">
               <select className={inputCls()} value={form.category}
@@ -207,26 +259,61 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
                 value={form.lowStockThreshold} onChange={(e) => set("lowStockThreshold", e.target.value)} placeholder="2" />
             </Field>
 
-            {/* Sizes — full width */}
+            {/* Sizes — custom tag input, full width */}
             <div className="sm:col-span-2">
-              <Field label="Available Sizes *" error={errors.sizes}>
-                <div className="flex gap-2 flex-wrap mt-1">
-                  {SIZES_OPTIONS.map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => toggleSize(size)}
-                      className={`font-sans font-extrabold text-[11px] tracking-[1px] uppercase px-4 py-2 border-2 cursor-pointer transition-colors ${
-                        form.sizes.includes(size)
-                          ? "bg-brand-orange text-brand-cream border-brand-orange"
-                          : "bg-white text-brand-smoke border-gray-200 hover:border-brand-orange hover:text-brand-orange"
-                      }`}
+              <label className="block font-sans font-extrabold text-[10px] tracking-[2px] uppercase text-brand-smoke mb-1.5">
+                Sizes *
+              </label>
+              <p className="font-sans text-[10px] text-brand-smoke/60 mb-2 leading-relaxed">
+                Type a size name and press Enter or Add. Each size gets its own price below.
+              </p>
+
+              {/* Existing size chips */}
+              {form.sizes.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {form.sizes.map((size, idx) => (
+                    <div
+                      key={`${size}-${idx}`}
+                      className="flex items-center gap-1.5 bg-brand-orange text-brand-cream border-2 border-brand-orange px-3 py-1.5"
                     >
-                      {size}
-                    </button>
+                      <span className="font-sans font-extrabold text-[11px] tracking-[1px] uppercase">
+                        {size}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeSize(idx)}
+                        className="flex items-center justify-center w-4 h-4 rounded-full bg-brand-cream/30 hover:bg-brand-cream/60 transition-colors cursor-pointer border-none leading-none text-brand-cream font-black text-[11px]"
+                        title={`Remove ${size}`}
+                      >
+                        ×
+                      </button>
+                    </div>
                   ))}
                 </div>
-              </Field>
+              )}
+
+              {/* Add new size input */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={sizeInput}
+                  onChange={(e) => setSizeInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSize(); } }}
+                  placeholder='e.g. Small, Standard, "With Vase", Jumbo…'
+                  className={`${inputCls(errors.sizes)} flex-1`}
+                />
+                <button
+                  type="button"
+                  onClick={addSize}
+                  disabled={!sizeInput.trim()}
+                  className="font-sans font-extrabold text-[11px] tracking-[1px] uppercase px-5 py-2.5 border-2 border-brand-black bg-brand-black text-brand-cream cursor-pointer hover:bg-brand-orange hover:border-brand-orange transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                >
+                  Add
+                </button>
+              </div>
+              {errors.sizes && (
+                <p className="font-sans text-[11px] text-red-500 mt-1">{errors.sizes}</p>
+              )}
             </div>
 
             {/* Description — full width */}

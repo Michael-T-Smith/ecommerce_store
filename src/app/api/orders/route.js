@@ -11,7 +11,6 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
-    const zone   = searchParams.get("zone");
     const from   = searchParams.get("from");
     const to     = searchParams.get("to");
     const type   = searchParams.get("type"); // 'delivery' | 'pickup'
@@ -21,7 +20,6 @@ export async function GET(request) {
     let   p          = 1;
 
     if (status) { conditions.push(`status = $${p++}`);                    params.push(status); }
-    if (zone)   { conditions.push(`delivery_zone = $${p++}`);             params.push(zone);   }
     if (from)   { conditions.push(`delivery_date >= $${p++}`);            params.push(from);   }
     if (to)     { conditions.push(`delivery_date <= $${p++}`);            params.push(to);     }
     if (type)   { conditions.push(`fulfillment_type = $${p++}`);          params.push(type);   }
@@ -78,8 +76,6 @@ export async function POST(request) {
     if (type === "delivery") {
       if (!deliveryAddress?.trim())
         return badRequest("deliveryAddress is required for delivery orders.");
-      if (!deliveryZone)
-        return badRequest("deliveryZone is required for delivery orders.");
       if (!deliveryDate)
         return badRequest("deliveryDate is required for delivery orders.");
     }

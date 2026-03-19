@@ -9,7 +9,7 @@ export async function PATCH(request, { params }) {
     if (!user)                                   return forbidden("Not authenticated.");
     if (!canDo(user.role, "delivery", "update")) return forbidden();
 
-    const id   = parseInt(params.id);
+    const { id }   = await params;
     const body = await request.json();
 
     const ALLOWED      = ["status", "driver_id", "delivery_notes", "delivered_at"];

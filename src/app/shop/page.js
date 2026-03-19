@@ -1,12 +1,3 @@
-// src/app/shop/page.js
-//
-// SERVER component — fetches live inventory from the database and
-// passes it to ShopPageClient for client-side filtering/sorting/search.
-//
-// No static data import. lib/data.js is no longer referenced here.
-// ShopGrid, ShopFilters, and all child components receive the same
-// prop shapes as before — the mapping happens in dbRowToItem() below.
-
 import pool          from "@/lib/db";
 import ShopPageClient from "./ShopPageClient";
 
@@ -18,11 +9,10 @@ function dbRowToItem(row) {
     sku        : row.sku,
     name       : row.name,
     description: row.description ?? "",
-    price      : Number(row.price),
+    prices     : Array.isArray(row.prices) ? row.prices.map(Number) : [0],
     category   : row.category,
     tag        : row.tag     ?? null,
     emoji      : row.emoji   ?? "🌸",
-    image_path      : row.image_path   ?? null,
     sizes      : Array.isArray(row.sizes) ? row.sizes : [],
     supplier   : row.supplier ?? null,
     stockCount : Number(row.stock_count  ?? 0),
@@ -46,7 +36,7 @@ export default async function ShopPage() {
 
   try {
     const result = await pool.query(
-      `SELECT id, sku, name, image_path, description, price, category, tag,
+      `SELECT id, sku, name, description, prices, category, tag,
               emoji, sizes, supplier, stock_count, in_stock
        FROM inventory
        ORDER BY category ASC, name ASC`
