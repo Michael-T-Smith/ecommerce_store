@@ -31,15 +31,29 @@ export async function GET(request) {
 
     const where  = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const result = await pool.query(
-      `SELECT id, sku, name, description, prices, cost_prices, category, tag,
-              emoji, sizes, supplier, stock_count, low_stock_threshold,
-              in_stock, is_featured, featured_accent,
-              created_at, updated_at
-       FROM inventory ${where} ORDER BY category, name`,
+      `SELECT inv.id, inv.sku, inv.name, inv.description, inv.prices, inv.cost_prices,
+              inv.category, inv.tag, inv.sizes, inv.supplier,
+              inv.stock_count, inv.low_stock_threshold,
+              inv.in_stock, inv.is_featured, inv.featured_accent,
+              inv.created_at, inv.updated_at,
+              COALESCE(
+                json_agg(
+                  json_build_object('id', ii.id, 'path', ii.path)
+                  ORDER BY ii.display_order ASC
+                ) FILTER (WHERE ii.id IS NOT NULL), '[]'
+              ) AS images
+       FROM inventory inv
+       LEFT JOIN inventory_images ii ON ii.inventory_id = inv.id
+       ${where} GROUP BY inv.id ORDER BY inv.category, inv.name`,
       params
     );
 
-    return okList(result.rows, result.rowCount);
+    // Map images from json_agg result
+    const rows = result.rows.map((row) => ({
+      ...row,
+      images: Array.isArray(row.images) ? row.images : [],
+    }));
+    return okList(rows, result.rowCount);
   } catch (err) {
     return serverError(err, "GET /api/inventory");
   }
@@ -54,7 +68,7 @@ export async function POST(request) {
     const body = await request.json();
     const {
       sku, name, description, prices, costPrices,
-      category, tag, emoji, sizes, supplier,
+      category, tag, sizes, supplier,
       stockCount, lowStockThreshold, inStock,
       isFeatured, featuredAccent,
     } = body;
@@ -72,10 +86,10 @@ export async function POST(request) {
 
     const result = await pool.query(
       `INSERT INTO inventory
-         (sku, name, description, prices, cost_prices, category, tag, emoji,
+         (sku, name, description, prices, cost_prices, category, tag,
           sizes, supplier, stock_count, low_stock_threshold, in_stock,
           is_featured, featured_accent)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
        RETURNING *`,
       [
         sku.trim().toUpperCase(),
@@ -85,7 +99,6 @@ export async function POST(request) {
         Array.isArray(costPrices) ? costPrices.map(Number) : prices.map(() => 0),
         category,
         tag    || null,
-        emoji  || null,
         sizes,
         supplier?.trim() || null,
         Number(stockCount        ?? 0),

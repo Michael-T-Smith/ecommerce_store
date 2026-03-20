@@ -6,6 +6,7 @@ import { useCart }         from "@/app/CartContext";
 import { B }               from "@/lib/brand";
 import FlowerMark          from "@/app/components/icons/FlowerMark";
 import ProductCardActions  from "@/app/components/ProductCardActions/ProductCardActions";
+import Image from "next/image";
 
 export default function FeaturedArrangements({ items = [] }) {
   const { addItem, items: cartItems } = useCart();
@@ -88,9 +89,12 @@ export default function FeaturedArrangements({ items = [] }) {
                       rgba(255,255,255,0.07) 24px, rgba(255,255,255,0.07) 28px)`,
                   }}
                 />
-                <span className="text-[88px] z-[1] leading-none transition-transform duration-200 group-hover:scale-110">
-                  {item.emoji}
-                </span>
+                {item.images?.[0]?.path ? (
+                  <Image src={item.images[0].path} alt={item.name} height={250} width={250}
+                    className="transition-transform z-1 duration-200 group-hover:scale-105" />
+                ) : (
+                  <span className="text-[88px] z-[1] leading-none">🌸</span>
+                )}
 
                 {inCart && (
                   <div className="absolute top-4 left-0 bg-brand-orange text-brand-cream font-sans font-extrabold text-[10px] tracking-[2px] uppercase px-4 py-1.5 border-r-[3px] border-brand-black z-[2] flex items-center gap-2">

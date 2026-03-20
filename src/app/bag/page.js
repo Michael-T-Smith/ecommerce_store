@@ -1,3 +1,10 @@
+// src/app/bag/page.js
+//
+// Full bag/cart review page at /bag.
+// Shows all cart items with qty controls and remove.
+// Calculates subtotal — delivery fee shown at checkout.
+// Empty state has a CTA back to the shop.
+
 "use client";
 
 import { useState }   from "react";
@@ -8,7 +15,6 @@ import Navbar          from "@/app/components/Navbar/Navbar";
 import Footer          from "@/app/components/Footer/Footer";
 import { useCart }     from "@/app/CartContext";
 import { B }           from "@/lib/brand";
-import Image from "next/image";
 
 // ── Qty stepper ──────────────────────────────────────────────────────────────
 function QtyStepper({ qty, onDecrement, onIncrement }) {
@@ -169,7 +175,7 @@ export default function BagPage() {
                             #F0E8DE`,
                         }}
                       >
-                        {item.image_path ? <Image src={item.image_path} alt={item.emoji} style={{display:"flex", justifyContent: "center", alignItems: "center"}} height={175} width={175}  /> : item.emoji}
+                        {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" /> : "🌸"}
                       </div>
                       <div>
                         <div className="font-serif font-bold text-brand-black text-[16px] leading-tight mb-1">

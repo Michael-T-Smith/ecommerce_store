@@ -6,6 +6,7 @@ import { useCart }        from "@/app/CartContext";
 import { B }              from "@/lib/brand";
 import FlowerMark         from "@/app/components/icons/FlowerMark";
 import ProductCardActions from "@/app/components/ProductCardActions/ProductCardActions";
+import Image from "next/image";
 
 export default function CatalogSection({ items = [] }) {
   const { addItem, items: cartItems } = useCart();
@@ -94,13 +95,16 @@ export default function CatalogSection({ items = [] }) {
                           rgba(0,0,0,0.03) 18px, rgba(0,0,0,0.03) 20px)`,
                       }}
                     />
-                    <span
-                      className={`text-[60px] z-[1] leading-none transition-transform duration-200 group-hover:scale-110 ${
+                    {item.images?.[0]?.path ? (
+                      <Image src={item.images[0].path} alt={item.name} height={150} width={150}
+                        className={`${
+                          !item.inStock ? "opacity-40 grayscale" : ""
+                        }`} />
+                    ) : (
+                      <span className={`text-[60px] z-[1] leading-none ${
                         !item.inStock ? "opacity-40 grayscale" : ""
-                      }`}
-                    >
-                      {item.emoji}
-                    </span>
+                      }`}>🌸</span>
+                    )}
 
                     {inCart && item.inStock && (
                       <div className="absolute top-2 left-0 bg-brand-orange text-brand-cream font-sans font-extrabold text-[8px] tracking-[1px] uppercase px-2.5 py-1 border-r-[3px] border-brand-black z-[2] flex items-center gap-1">

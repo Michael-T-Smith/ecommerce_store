@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect }  from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { INVENTORY_CATEGORIES, INVENTORY_TAGS, INVENTORY_SUPPLIERS } from "@/lib/inventoryData";
 import { B } from "@/lib/brand";
 
@@ -11,7 +11,6 @@ const EMPTY_FORM = {
   prices      : [""],   // one entry per size — parallel to sizes[]
   costPrices  : [""],   // one entry per size — parallel to sizes[]
   tag         : "None",
-  emoji       : "💐",
   description : "",
   sizes       : ["Standard"],
   supplier    : "Piedmont Valley Growers",
@@ -27,6 +26,13 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
   const [errors,    setErrors   ] = useState({});
   const [sizeInput, setSizeInput] = useState("");
 
+  // ── Image manager state ──────────────────────────────────────────────
+  const [images,     setImages    ] = useState([]);  // { id, path, display_order }
+  const [uploading,  setUploading ] = useState(false);
+  const [imgError,   setImgError  ] = useState(null);
+  const [dragOver,   setDragOver  ] = useState(false);
+  const fileInputRef = useRef(null);
+
   // Pre-fill form in edit mode
   useEffect(() => {
     if (mode === "edit" && item) {
@@ -37,7 +43,6 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
         prices           : (item.prices     ?? [0]).map(String),
         costPrices       : (item.costPrices ?? [0]).map(String),
         tag              : item.tag               || "None",
-        emoji            : item.emoji             || "💐",
         description      : item.description       || "",
         sizes            : item.sizes             || ["Standard"],
         supplier         : item.supplier          || "Piedmont Valley Growers",
@@ -51,12 +56,51 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
       setForm(EMPTY_FORM);
     }
     setErrors({});
+
+    // Load existing images when editing
+    if (mode === "edit" && item?.id) {
+      fetch(`/api/inventory/${item.id}/images`)
+        .then((r) => r.json())
+        .then((d) => setImages(d.data ?? []))
+        .catch(() => {});
+    } else {
+      setImages([]);
+    }
+    setImgError(null);
   }, [mode, item]);
 
   const set = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }));
     setErrors((e) => ({ ...e, [field]: null }));
   };
+
+  // Upload a single image file to the server
+  const handleUpload = useCallback(async (file) => {
+    if (uploading || images.length >= 5) return;
+    setUploading(true);
+    setImgError(null);
+    try {
+      // For new items (no id yet) we store the file locally as a preview
+      // and upload for real after the item is saved. For existing items,
+      // upload immediately so images are persisted right away.
+      if (!item?.id) {
+        // Preview only — create a local object URL
+        const url = URL.createObjectURL(file);
+        setImages((prev) => [...prev, { id: `local-${Date.now()}`, path: url, file, display_order: prev.length }]);
+      } else {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res  = await fetch(`/api/inventory/${item.id}/images`, { method: "POST", body: fd });
+        const data = await res.json();
+        if (!res.ok) { setImgError(data.error || "Upload failed."); return; }
+        setImages((prev) => [...prev, data.data]);
+      }
+    } catch {
+      setImgError("Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }, [item, images, uploading]);
 
   // Add a custom size name — appends aligned empty price entries
   const addSize = () => {
@@ -111,6 +155,7 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
       tag              : form.tag === "None" ? null : form.tag,
       isFeatured       : form.isFeatured,
       featuredAccent   : form.featuredAccent,
+      images           : images,
     });
   };
 
@@ -237,10 +282,155 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
               </select>
             </Field>
 
-            <Field label="Emoji">
-              <input className={inputCls()} value={form.emoji}
-                onChange={(e) => set("emoji", e.target.value)} placeholder="💐" maxLength={4} />
-            </Field>
+            {/* ── Photos — full width ──────────────────────────────── */}
+            <div className="sm:col-span-2">
+              <label className="block font-sans font-extrabold text-[10px] tracking-[2px] uppercase text-brand-smoke mb-1.5">
+                Product Photos
+              </label>
+              <p className="font-sans text-[10px] text-brand-smoke/60 mb-3">
+                Up to 5 photos. First photo is shown on the shop. Drag to reorder.
+              </p>
+
+              {/* Photo slots */}
+              <div className="flex flex-wrap gap-3 mb-3">
+
+                {/* Existing image thumbnails */}
+                {images.map((img, idx) => (
+                  <div key={img.id} className="relative group">
+                    <div
+                      className={`w-[88px] h-[88px] border-[3px] overflow-hidden relative ${
+                        idx === 0 ? "border-brand-orange" : "border-brand-black/30"
+                      }`}
+                    >
+                      <img
+                        src={img.path}
+                        alt={`Photo ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      {idx === 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-brand-orange text-brand-cream font-sans font-extrabold text-[8px] tracking-[1px] uppercase text-center py-0.5">
+                          Main
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Reorder arrows */}
+                    <div className="flex justify-between mt-1 gap-1">
+                      <button
+                        type="button"
+                        disabled={idx === 0}
+                        onClick={async () => {
+                          const next = [...images];
+                          [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                          setImages(next);
+                          if (item?.id) {
+                            await fetch(`/api/inventory/${item.id}/images`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ order: next.map((i) => i.id) }),
+                            });
+                          }
+                        }}
+                        className="flex-1 py-1 font-sans font-black text-[10px] border border-brand-black/20 bg-white text-brand-smoke hover:bg-brand-black hover:text-brand-cream disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      >←</button>
+                      <button
+                        type="button"
+                        disabled={idx === images.length - 1}
+                        onClick={async () => {
+                          const next = [...images];
+                          [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+                          setImages(next);
+                          if (item?.id) {
+                            await fetch(`/api/inventory/${item.id}/images`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ order: next.map((i) => i.id) }),
+                            });
+                          }
+                        }}
+                        className="flex-1 py-1 font-sans font-black text-[10px] border border-brand-black/20 bg-white text-brand-smoke hover:bg-brand-black hover:text-brand-cream disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      >→</button>
+                    </div>
+
+                    {/* Remove button */}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!item?.id) { setImages((p) => p.filter((_, i) => i !== idx)); return; }
+                        await fetch(`/api/inventory/${item.id}/images`, {
+                          method: "DELETE",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ imageId: img.id }),
+                        });
+                        setImages((p) => p.filter((_, i) => i !== idx));
+                      }}
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white font-black text-[12px] leading-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-none"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+
+                {/* Add photo slot — shown when under 5 images */}
+                {images.length < 5 && (
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      setDragOver(false);
+                      const file = e.dataTransfer.files[0];
+                      if (file) handleUpload(file);
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`w-[88px] h-[88px] border-[3px] border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors ${
+                      dragOver
+                        ? "border-brand-orange bg-brand-orange/5"
+                        : "border-brand-black/25 bg-gray-50 hover:border-brand-orange hover:bg-brand-orange/5"
+                    } ${
+                      uploading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    {uploading ? (
+                      <svg className="animate-spin" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke={B.orange} strokeWidth="2.5">
+                        <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+                        <path d="M12 2a10 10 0 0 1 10 10" />
+                      </svg>
+                    ) : (
+                      <>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                          stroke={B.smoke} strokeWidth="2" strokeLinecap="round">
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                          <polyline points="17 8 12 3 7 8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        <span className="font-sans font-extrabold text-[8px] tracking-[1px] uppercase text-brand-smoke/60 text-center leading-tight">
+                          Add{images.length === 0 ? "\nPhoto" : ""}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleUpload(file);
+                  e.target.value = "";
+                }}
+              />
+
+              {imgError && (
+                <p className="font-sans text-[11px] text-red-500 mt-1">{imgError}</p>
+              )}
+            </div>
 
             <Field label="Supplier">
               <select className={inputCls()} value={form.supplier}
@@ -413,7 +603,7 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
                       className="w-full h-10 border-2 border-brand-black/20 flex items-center justify-center gap-2"
                       style={{ background: form.featuredAccent }}
                     >
-                      <span className="text-[20px]">{form.emoji}</span>
+                      <span className="text-[20px]">🌸</span>
                       <span className="font-sans font-extrabold text-[10px] tracking-[1px] uppercase text-white/80">
                         Card preview
                       </span>

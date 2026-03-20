@@ -45,10 +45,13 @@ export async function DELETE(_request, { params }) {
     const user = await getServerUser();
     if (!user)                                   return forbidden("Not authenticated.");
     if (!canDo(user.role, "delivery", "delete")) return forbidden();
- 
+    
+    let { id } = await params;
+    id = parseInt(id)
+
     const result = await pool.query(
       "DELETE FROM delivery_zones WHERE id = $1 RETURNING id, value, label",
-      [parseInt(params.id)]
+      [id]
     );
  
     if (result.rowCount === 0) return notFound("Zone not found.");

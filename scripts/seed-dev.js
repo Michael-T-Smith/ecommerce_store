@@ -20,8 +20,8 @@ config({ path: ".env.local" });
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
 const DEV_USERS = [
-  { email: "cecelia@lambsflorist.com", password: "admin1234",    label: "Cecelia Bates  (admin)"    },
-  { email: "frank@lambsflorist.com",   password: "manager1234",  label: "Frank Bates    (manager)"  },
+  { email: "cecelia@lambsflorist.com", password: "admin1234",    label: "Cecelia Lamb  (admin)"    },
+  { email: "frank@lambsflorist.com",   password: "manager1234",  label: "Frank Lamb    (manager)"  },
   { email: "jane@lambsflorist.com",    password: "employee1234", label: "Jane Holloway  (employee)" },
 ];
 

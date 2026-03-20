@@ -12,7 +12,7 @@ function dbRowToItem(row) {
     prices     : Array.isArray(row.prices) ? row.prices.map(Number) : [0],
     category   : row.category,
     tag        : row.tag     ?? null,
-    emoji      : row.emoji   ?? "🌸",
+    images     : Array.isArray(row.images) ? row.images : [],
     sizes      : Array.isArray(row.sizes) ? row.sizes : [],
     supplier   : row.supplier ?? null,
     stockCount : Number(row.stock_count  ?? 0),
@@ -36,10 +36,17 @@ export default async function ShopPage() {
 
   try {
     const result = await pool.query(
-      `SELECT id, sku, name, description, prices, category, tag,
-              emoji, sizes, supplier, stock_count, in_stock
-       FROM inventory
-       ORDER BY category ASC, name ASC`
+`SELECT inv.id, inv.sku, inv.name, inv.description, inv.prices, inv.category, inv.tag,
+              inv.sizes, inv.supplier, inv.stock_count, inv.in_stock,
+              COALESCE(
+                json_agg(json_build_object('id', ii.id, 'path', ii.path)
+                  ORDER BY ii.display_order ASC)
+                FILTER (WHERE ii.id IS NOT NULL), '[]'
+              ) AS images
+       FROM inventory inv
+       LEFT JOIN inventory_images ii ON ii.inventory_id = inv.id
+       GROUP BY inv.id
+       ORDER BY inv.category ASC, inv.name ASC`
     );
 
     items = result.rows.map(dbRowToItem);

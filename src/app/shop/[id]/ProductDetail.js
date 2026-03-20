@@ -1,3 +1,10 @@
+// src/app/shop/[id]/ProductDetail.js
+//
+// "use client" — handles all interactive parts: size selection, qty,
+// add-to-bag, and the related products strip.
+//
+// Receives `product` and `related` as serialised props from the server page.
+
 "use client";
 
 import { useState, useCallback }  from "react";
@@ -57,9 +64,12 @@ function RelatedCard({ item }) {
                 rgba(0,0,0,0.03) 20px, rgba(0,0,0,0.03) 22px)`,
             }}
           />
-          <span className="text-[64px] z-[1] leading-none transition-transform duration-200 group-hover:scale-110">
-            {item.emoji}
-          </span>
+          {item.images?.[0]?.path ? (
+            <img src={item.images[0].path} alt={item.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+          ) : (
+            <span className="text-[64px] z-[1] leading-none">🌸</span>
+          )}
           {inCart && (
             <div className="absolute top-2 left-0 bg-brand-orange text-brand-cream font-sans font-extrabold text-[8px] tracking-[1px] uppercase px-2.5 py-1 border-r-[2px] border-brand-black z-[2]">
               In Bag · {totalQty}
@@ -102,6 +112,10 @@ function RelatedCard({ item }) {
 export default function ProductDetail({ product, related }) {
   const router = useRouter();
   const { addItem, items: cartItems } = useCart();
+
+  const [selectedImg, setSelectedImg] = useState(0);
+  const productImages = product.images ?? [];
+  const coverImage    = productImages[selectedImg]?.path ?? null;
 
   const multiSize    = product.sizes?.length > 1;
   const [selectedSize, setSelectedSize] = useState(
@@ -189,15 +203,18 @@ export default function ProductDetail({ product, related }) {
                 }}
               />
 
-              {/* Product emoji */}
+              {/* Main image or fallback */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <span
-                  className={`text-[160px] leading-none select-none ${
+                {coverImage ? (
+                  <img src={coverImage} alt={product.name}
+                    className={`w-full h-full object-cover ${
+                      !product.inStock ? "grayscale opacity-60" : ""
+                    }`} />
+                ) : (
+                  <span className={`text-[160px] leading-none select-none ${
                     !product.inStock ? "opacity-40 grayscale" : ""
-                  }`}
-                >
-                  {product.emoji}
-                </span>
+                  }`}>🌸</span>
+                )}
               </div>
 
               {/* Out of stock overlay */}
@@ -240,6 +257,26 @@ export default function ProductDetail({ product, related }) {
                     Source: {product.supplier}
                   </span>
                 )}
+              </div>
+            )}
+
+            {/* Thumbnail strip — compact row below main image */}
+            {productImages.length > 1 && (
+              <div className="flex gap-2 mt-4 max-w-[560px] mx-auto">
+                {productImages.map((img, i) => (
+                  <button
+                    key={img.id ?? i}
+                    type="button"
+                    onClick={() => setSelectedImg(i)}
+                    className={`w-[52px] h-[52px] flex-shrink-0 border-[2px] overflow-hidden cursor-pointer transition-colors ${
+                      selectedImg === i
+                        ? "border-brand-orange"
+                        : "border-brand-black/20 hover:border-brand-orange"
+                    }`}
+                  >
+                    <img src={img.path} alt={`View ${i + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
               </div>
             )}
           </div>

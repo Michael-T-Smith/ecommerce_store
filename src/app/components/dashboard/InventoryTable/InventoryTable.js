@@ -49,7 +49,7 @@ export default function InventoryTable({
       </div>
     );
   }
-
+  console.log(items);
   return (
     <div className="bg-white border border-gray-200 overflow-hidden">
       {/* Responsive scroll wrapper */}
@@ -72,10 +72,17 @@ export default function InventoryTable({
                   i % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                 }`}
               >
-                {/* Item name + emoji */}
+                {/* Item name + photo thumbnail */}
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-[24px] leading-none flex-shrink-0">{item.emoji}</span>
+                    <div className="w-10 h-10 border border-brand-black/10 overflow-hidden flex-shrink-0 flex items-center justify-center bg-[#F0E8DE]">
+                      {item.images?.[0]?.path ? (
+                        <img src={item.images[0].path} alt={item.name}
+                          className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-[18px]">🌸</span>
+                      )}
+                    </div>
                     <div>
                       <div className="font-serif font-bold text-brand-black text-[14px] leading-tight">
                         {item.name}

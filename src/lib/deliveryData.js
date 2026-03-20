@@ -24,7 +24,7 @@ export const DELIVERIES_MOCK = [
   {
     id: 1, orderId: 1, orderNumber: "LF-2024-0001",
     customerName: "Sarah Mitchell",
-    driverId: 2, driverName: "Frank Bates",
+    driverId: 2, driverName: "Frank Lamb",
     zone: "piedmont",
     address: "412 Oak Street, Piedmont, AL 36272",
     scheduledDate: "2024-12-01", scheduledWindow: "morning",
@@ -35,7 +35,7 @@ export const DELIVERIES_MOCK = [
   {
     id: 2, orderId: 2, orderNumber: "LF-2024-0002",
     customerName: "Marcus Webb",
-    driverId: 2, driverName: "Frank Bates",
+    driverId: 2, driverName: "Frank Lamb",
     zone: "anniston",
     address: "88 Hillside Drive, Anniston, AL 36201",
     scheduledDate: "2024-12-03", scheduledWindow: "afternoon",

@@ -10,7 +10,7 @@ npm install
 
 ## .env.local
 ```
-DATABASE_URL=postgresql://lambs:lambs@127.0.0.1:5432/lambsflorist
+DATABASE_URL=postgresql://lambs:<pword>@127.0.0.1:5432/lambsflorist
 JWT_SECRET=your-secret-here-change-this-before-go-live
 NODE_ENV=development
 ```
