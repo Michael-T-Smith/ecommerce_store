@@ -49,7 +49,6 @@ export default function InventoryTable({
       </div>
     );
   }
-  console.log(items);
   return (
     <div className="bg-white border border-gray-200 overflow-hidden">
       {/* Responsive scroll wrapper */}
@@ -57,7 +56,7 @@ export default function InventoryTable({
         <table className="w-full min-w-[820px] border-collapse">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              {["Item", "SKU", "Category", "Price / Cost", "Stock", "Featured", "Supplier", "Actions"].map((h) => (
+              {["Item", "SKU", "Category", "Location", "Price / Cost", "Stock", "Featured", "Supplier", "Actions"].map((h) => (
                 <th key={h} className="text-left px-4 py-3 font-sans font-extrabold text-[10px] tracking-[1.5px] uppercase text-brand-smoke whitespace-nowrap">
                   {h}
                 </th>
@@ -113,6 +112,20 @@ export default function InventoryTable({
                   </span>
                 </td>
 
+                {/* Location */}
+                <td className="px-4 py-3">
+                  <span
+                    className="font-sans font-extrabold text-[9px] tracking-[1.5px] uppercase px-2 py-1 border"
+                    style={
+                      item.location === "centre"
+                        ? { color: "#3D2B1A", borderColor: "#3D2B1A40", background: "#3D2B1A12" }
+                        : { color: B.orange,  borderColor: `${B.orange}40`, background: `${B.orange}10` }
+                    }
+                  >
+                    {item.location === "centre" ? "Centre" : "Piedmont"}
+                  </span>
+                </td>
+
                 {/* Price / Cost */}
                 <td className="px-4 py-3">
                   <div>
@@ -157,7 +170,7 @@ export default function InventoryTable({
                     {/* Toggle — only if user can update */}
                     {canEdit && (
                       <button
-                        onClick={() => onToggleStock(item.id)}
+                        onClick={() => onToggleStock(item)}
                         className="font-sans text-[10px] text-brand-smoke underline cursor-pointer bg-transparent border-none hover:text-brand-orange transition-colors"
                       >
                         {item.inStock ? "Mark out" : "Mark in"}

@@ -15,12 +15,14 @@ export async function GET(request) {
     const category = searchParams.get("category");
     const inStock  = searchParams.get("inStock");
     const search   = searchParams.get("search");
+    const location = searchParams.get("location");
 
     const conditions = [];
     const params     = [];
     let   p          = 1;
 
     if (category) { conditions.push(`category = $${p++}`);  params.push(category); }
+    if (location) { conditions.push(`inv.location = $${p++}`); params.push(location); }
     if (inStock === "true")  conditions.push("in_stock = true");
     if (inStock === "false") conditions.push("in_stock = false");
     if (search) {
@@ -32,7 +34,7 @@ export async function GET(request) {
     const where  = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const result = await pool.query(
       `SELECT inv.id, inv.sku, inv.name, inv.description, inv.prices, inv.cost_prices,
-              inv.category, inv.tag, inv.sizes, inv.supplier,
+              inv.category, inv.tag, inv.sizes, inv.supplier, inv.location,
               inv.stock_count, inv.low_stock_threshold,
               inv.in_stock, inv.is_featured, inv.featured_accent,
               inv.created_at, inv.updated_at,
@@ -68,7 +70,7 @@ export async function POST(request) {
     const body = await request.json();
     const {
       sku, name, description, prices, costPrices,
-      category, tag, sizes, supplier,
+      category, tag, sizes, supplier, location,
       stockCount, lowStockThreshold, inStock,
       isFeatured, featuredAccent,
     } = body;
@@ -84,12 +86,15 @@ export async function POST(request) {
     if (prices.some((p) => !Number.isInteger(p) || p < 0))
       return badRequest("All prices must be non-negative integers.");
 
+    const validLocations = ["piedmont", "centre"];
+    const resolvedLocation = validLocations.includes(location) ? location : "piedmont";
+
     const result = await pool.query(
       `INSERT INTO inventory
          (sku, name, description, prices, cost_prices, category, tag,
-          sizes, supplier, stock_count, low_stock_threshold, in_stock,
+          sizes, supplier, location, stock_count, low_stock_threshold, in_stock,
           is_featured, featured_accent)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
        RETURNING *`,
       [
         sku.trim().toUpperCase(),
@@ -101,6 +106,7 @@ export async function POST(request) {
         tag    || null,
         sizes,
         supplier?.trim() || null,
+        resolvedLocation,
         Number(stockCount        ?? 0),
         Number(lowStockThreshold ?? 2),
         inStock       ?? true,

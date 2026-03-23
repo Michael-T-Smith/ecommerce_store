@@ -26,10 +26,10 @@ export async function GET(request) {
 
     const where  = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const result = await pool.query(
-      `SELECT order_number, customer_name, customer_email, customer_phone,
+      `SELECT id, order_number, customer_name, customer_email, customer_phone,
               items, subtotal, delivery_fee, processing_fee, total,
               fulfillment_type, delivery_address, delivery_zone,
-              delivery_date, delivery_window, pickup_time,
+              delivery_date, delivery_window, pickup_time, pickup_location,
               note_message, status, staff_notes, stripe_payment_id,
               customer_id, created_at, updated_at
        FROM orders ${where} ORDER BY created_at DESC`,
@@ -53,7 +53,7 @@ export async function POST(request) {
       // delivery fields
       deliveryAddress, deliveryZone, deliveryDate, deliveryWindow,
       // pickup fields
-      pickupDate, pickupTime,
+      pickupDate, pickupTime, pickupLocation,
       // shared
       noteMessage, customerId, stripePaymentId,
     } = body;
@@ -100,15 +100,21 @@ export async function POST(request) {
     try {
       await client.query("BEGIN");
 
+      const resolvedPickupLocation = type === "pickup" ? (pickupLocation === "centre" ? "centre" : "piedmont") : null;
+      const pickupAddress =
+        resolvedPickupLocation === "centre"
+          ? "In-Store Pickup — 1470 W Main St, Ste H, Centre, AL 35960"
+          : "In-Store Pickup — 211 Memorial Dr, Piedmont, AL 36272";
+
       const orderRes = await client.query(
         `INSERT INTO orders
            (order_number, customer_name, customer_email, customer_phone,
             items, subtotal, delivery_fee, processing_fee, total,
             fulfillment_type,
             delivery_address, delivery_zone, delivery_date, delivery_window,
-            pickup_time, note_message, customer_id, stripe_payment_id,
+            pickup_time, pickup_location, note_message, customer_id, stripe_payment_id,
             status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
          RETURNING *`,
         [
           orderNumber,
@@ -121,13 +127,14 @@ export async function POST(request) {
           Number(processingFee ?? 0),
           Number(total         ?? 0),
           type,
-          // delivery cols — null for pickup
-          type === "delivery" ? deliveryAddress.trim() : "In-Store Pickup — 204 Main St, Piedmont, AL",
+          // delivery cols — null/default for pickup
+          type === "delivery" ? deliveryAddress.trim() : pickupAddress,
           type === "delivery" ? (deliveryZone ?? null) : null,
           type === "delivery" ? deliveryDate  : pickupDate,
-          type === "delivery" ? (deliveryWindow || null) : null,
+          type === "delivery" ? (deliveryWindow || "afternoon") : "afternoon",
           // pickup cols — null for delivery
-          type === "pickup"   ? pickupTime : null,
+          type === "pickup"   ? pickupTime         : null,
+          type === "pickup"   ? resolvedPickupLocation : null,
           noteMessage?.trim() || null,
           customerId          || null,
           stripePaymentId,

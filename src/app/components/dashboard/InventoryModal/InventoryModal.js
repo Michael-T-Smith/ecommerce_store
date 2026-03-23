@@ -19,6 +19,7 @@ const EMPTY_FORM = {
   inStock          : true,
   isFeatured        : false,
   featuredAccent    : "#D4511A",
+  location          : "piedmont",
 };
 
 export default function InventoryModal({ mode, item, onSave, onClose }) {
@@ -51,6 +52,7 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
         inStock          : item.inStock           ?? true,
         isFeatured        : item.isFeatured        ?? false,
         featuredAccent    : item.featuredAccent    ?? "#D4511A",
+        location          : item.location          ?? "piedmont",
       });
     } else {
       setForm(EMPTY_FORM);
@@ -279,6 +281,14 @@ export default function InventoryModal({ mode, item, onSave, onClose }) {
               <select className={inputCls()} value={form.tag}
                 onChange={(e) => set("tag", e.target.value)}>
                 {INVENTORY_TAGS.map((t) => <option key={t}>{t}</option>)}
+              </select>
+            </Field>
+
+            <Field label="Store Location">
+              <select className={inputCls()} value={form.location}
+                onChange={(e) => set("location", e.target.value)}>
+                <option value="piedmont">Piedmont</option>
+                <option value="centre">Centre</option>
               </select>
             </Field>
 

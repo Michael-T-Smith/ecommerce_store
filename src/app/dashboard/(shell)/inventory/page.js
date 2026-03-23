@@ -17,9 +17,9 @@ import { B } from "@/lib/brand";
 
 const CATEGORIES = ["All", "Bouquets", "Arrangements", "Plants", "Seasonal", "Gifts"];
 const LOCATIONS  = [
-  { value: "all",       label: "All Locations" },
-  { value: "piedmont",  label: "Piedmont"       },
-  { value: "anniston",  label: "Anniston"       },
+  { value: "all",      label: "All Locations" },
+  { value: "piedmont", label: "Piedmont"       },
+  { value: "centre",   label: "Centre"         },
 ];
 
 // Map snake_case DB row → camelCase for UI components
@@ -41,6 +41,7 @@ function remapItem(row) {
     inStock           : row.in_stock,
     isFeatured        : row.is_featured        ?? false,
     featuredAccent    : row.featured_accent     ?? "#D4511A",
+    location          : row.location            ?? "piedmont",
     createdAt         : row.created_at,
   };
 }
@@ -68,10 +69,10 @@ export default function InventoryPage() {
       setLoading(true);
       setApiError(null);
       const params = {};
-      if (filterCat !== "All") params.category = filterCat;
-      if (filterStock === "in")  params.inStock = "true";
-      if (filterStock === "out") params.inStock = "false";
-      // Location filter is client-side (no location column on main inventory yet — uses variants)
+      if (filterCat !== "All")       params.category = filterCat;
+      if (filterStock === "in")      params.inStock   = "true";
+      if (filterStock === "out")     params.inStock   = "false";
+      if (filterLocation !== "all")  params.location  = filterLocation;
       const res = await fetchInventory(params);
       setItems(res.data.map(remapItem));
     } catch (err) {
@@ -79,7 +80,7 @@ export default function InventoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterCat, filterStock]);
+  }, [filterCat, filterStock, filterLocation]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -132,6 +133,7 @@ export default function InventoryPage() {
   };
 
   const handleToggleStock = async (item) => {
+    console.log('dashboard/shell/inventory/page.js', item);
     const newVal = !item.inStock;
     setItems((prev) =>
       prev.map((i) => i.id === item.id ? { ...i, inStock: newVal } : i)
@@ -248,17 +250,6 @@ export default function InventoryPage() {
           ))}
         </div>
       </div>
-
-      {/* Location notice when filtering — variant stock by location is in migration 003 */}
-      {filterLocation !== "all" && (
-        <div className="bg-amber-50 border border-amber-200 px-4 py-3 font-sans text-[12px] text-amber-800 flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          Showing all products — per-location stock counts are in{" "}
-          <strong>inventory_stock</strong> table (migration 003). Location stock detail view coming in next update.
-        </div>
-      )}
 
       <InventoryTable
         items={filteredItems}

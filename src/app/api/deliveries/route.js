@@ -24,7 +24,7 @@ export async function GET(request) {
 
     const where  = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
     const result = await pool.query(
-      `SELECT d.id, d.order_id, d.zone, d.address,
+      `SELECT d.id, d.order_id, d.driver_id, d.zone, d.address,
               d.scheduled_date, d.scheduled_window,
               d.status, d.delivery_notes, d.delivered_at,
               d.created_at, d.updated_at,

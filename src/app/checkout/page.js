@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo }  from "react";
+import { useState, useEffect, useMemo, useRef }  from "react";
 import Link                              from "next/link";
 import { useRouter }                     from "next/navigation";
 import { loadStripe }                    from "@stripe/stripe-js";
@@ -241,7 +241,8 @@ export default function CheckoutPage() {
   const [step,          setStep         ] = useState("details"); // "details" | "payment"
   const [clientSecret,  setClientSecret ] = useState(null);
   const [stripeAccount, setStripeAccount] = useState(null); // acct_... in Connect mode, null in direct
-
+  const checkedOut = useRef(false); 
+  
   // ── Fulfillment ───────────────────────────────────────────────────────────
   const [fulfillment, setFulfillment] = useState("delivery"); // "delivery" | "pickup"
 
@@ -264,6 +265,7 @@ export default function CheckoutPage() {
     // pickup
     pickupDate     : getTomorrowDate(),
     pickupTime     : "10:00-11:00",
+    pickupLocation : "piedmont",
     // shared
     noteMessage    : "",
   });
@@ -274,7 +276,7 @@ export default function CheckoutPage() {
 
   // Redirect if cart empty
   useEffect(() => {
-    if (items.length === 0) router.replace("/bag");
+    if (items.length === 0 && !checkedOut.current) router.replace("/bag");
   }, [items, router]);
 
   // Session prefill
@@ -332,6 +334,9 @@ export default function CheckoutPage() {
     if (!form.customerEmail.trim()) e.customerEmail = "Email is required.";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.customerEmail))
       e.customerEmail = "Enter a valid email address.";
+
+    if (form.customerPhone.trim() && !/^\+?[\d\s\-().]{7,15}$/.test(form.customerPhone.trim()))
+      e.customerPhone = "Enter a valid phone number.";
 
     if (fulfillment === "delivery") {
       if (!form.addressLine.trim()) e.addressLine  = "Street address is required.";
@@ -394,17 +399,24 @@ export default function CheckoutPage() {
 
   // ── Payment success ───────────────────────────────────────────────────────
   const handleSuccess = (order) => {
+    checkedOut.current = true;
     clearCart();
     try { sessionStorage.setItem("lambs_pending_order", JSON.stringify(order)); } catch {}
     router.push(`/order/${order.order_number}`);
   };
 
   // ── Order data passed to POST /api/orders after Stripe confirms ───────────
+  const STORE_INFO = {
+    piedmont: { address: "211 Memorial Dr, Piedmont, AL 36272",         phone: "(256) 447-6331" },
+    centre  : { address: "1470 W Main St, Ste H, Centre, AL 35960",     phone: "(256) 447-6331" },
+  };
+
   const orderData = useMemo(() => {
+    const loc = form.pickupLocation === "centre" ? "centre" : "piedmont";
     const deliveryAddress =
       fulfillment === "delivery"
         ? [form.addressLine, form.city, form.state, form.zip].filter(Boolean).join(", ")
-        : "In-Store Pickup — 204 Main St, Piedmont, AL";
+        : `In-Store Pickup — ${STORE_INFO[loc].address}`;
     return {
       customerName   : form.customerName.trim(),
       customerEmail  : form.customerEmail.trim().toLowerCase(),
@@ -420,6 +432,7 @@ export default function CheckoutPage() {
       deliveryWindow : fulfillment === "delivery" ? form.deliveryWindow : null,
       pickupDate     : fulfillment === "pickup"   ? form.pickupDate     : null,
       pickupTime     : fulfillment === "pickup"   ? form.pickupTime     : null,
+      pickupLocation : fulfillment === "pickup"   ? loc                 : null,
       noteMessage    : form.noteMessage.trim() || null,
       customerId     : customerId || null,
     };
@@ -524,7 +537,7 @@ export default function CheckoutPage() {
                         value   : "pickup",
                         emoji   : "🌸",
                         label   : "In-Store Pickup",
-                        sub     : "204 Main St, Piedmont",
+                        sub     : "Piedmont or Centre",
                         feeNote : "No delivery charge",
                       },
                     ].map((opt) => {
@@ -586,8 +599,9 @@ export default function CheckoutPage() {
                       <input type="tel" value={form.customerPhone}
                         placeholder="(256) 555-0100"
                         autoComplete="tel"
-                        className={inputCls}
+                        className={`${inputCls} ${errors.customerPhone ? "border-red-400" : ""}`}
                         onChange={(e) => setField("customerPhone", e.target.value)} />
+                      <FieldError msg={errors.customerPhone} />
                     </div>
                   </div>
                 </section>
@@ -686,7 +700,39 @@ export default function CheckoutPage() {
                   <section>
                     <SectionHeader number="3" title="Pickup Details" />
 
-                    {/* Store info card */}
+                    {/* Location selector */}
+                    <div className="mb-5">
+                      <Label required>Pickup Location</Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                        {[
+                          { value: "piedmont", name: "Piedmont",  addr: "211 Memorial Dr, Piedmont AL 36272" },
+                          { value: "centre",   name: "Centre",    addr: "1470 W Main St, Ste H, Centre AL 35960" },
+                        ].map((loc) => {
+                          const active = form.pickupLocation === loc.value;
+                          return (
+                            <button key={loc.value} type="button"
+                              onClick={() => setField("pickupLocation", loc.value)}
+                              className={`text-left p-4 border-[2px] transition-all cursor-pointer ${
+                                active
+                                  ? "border-brand-orange bg-brand-orange/5"
+                                  : "border-brand-black/20 bg-white hover:border-brand-orange/40"
+                              }`}>
+                              <div className="flex items-center gap-2 mb-1">
+                                <div className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 ${
+                                  active ? "border-brand-orange bg-brand-orange" : "border-brand-black/30"
+                                }`} />
+                                <span className={`font-sans font-extrabold text-[12px] tracking-[0.5px] ${
+                                  active ? "text-brand-orange" : "text-brand-black"
+                                }`}>{loc.name}</span>
+                              </div>
+                              <div className="font-sans text-[11px] text-brand-smoke pl-5">{loc.addr}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Store info card — updates based on selected location */}
                     <div
                       className="flex gap-4 p-5 mb-6 border-[3px] border-brand-black"
                       style={{ background: B.bark }}
@@ -694,10 +740,10 @@ export default function CheckoutPage() {
                       <div className="text-[36px] leading-none flex-shrink-0">📍</div>
                       <div>
                         <div className="font-serif font-black text-brand-cream text-[17px] mb-1">
-                          Lamb&apos;s Florist
+                          Lamb&apos;s Florist — {form.pickupLocation === "centre" ? "Centre" : "Piedmont"}
                         </div>
                         <div className="font-sans text-brand-cream/80 text-[13px] leading-relaxed">
-                          204 Main St, Piedmont, AL 36272
+                          {STORE_INFO[form.pickupLocation === "centre" ? "centre" : "piedmont"].address}
                         </div>
                         <a
                           href="tel:+12564476331"

@@ -13,7 +13,8 @@ import { HERO_THEMES }       from "@/lib/themes";
 
 export default function HomePageClient({ featuredItems = [], catalogItems = [] }) {
   const [themeKey, setThemeKey] = useState("default");
-  const theme = HERO_THEMES[themeKey];
+  let theme = HERO_THEMES[themeKey];
+  if(!theme) theme = HERO_THEMES["default"];
 
   return (
     <div className="font-serif bg-brand-cream min-h-screen overflow-x-hidden">

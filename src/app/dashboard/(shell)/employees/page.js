@@ -192,7 +192,7 @@ export default function EmployeesPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="font-sans text-[12px] text-brand-smoke">
-                        {new Date(emp.hireDate + "T00:00:00").toLocaleDateString("en-US", { dateStyle: "medium" })}
+                        {new Date(emp.hireDate).toLocaleDateString("en-US", { dateStyle: "medium" })}
                       </span>
                     </td>
                     <td className="px-4 py-3">

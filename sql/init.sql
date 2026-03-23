@@ -7,15 +7,18 @@
 --
 --    docker exec -i lambs_postgres psql -U lambs -d lambsflorist < sql/init.sql
 --
---  Schema reflects all migrations 001-009:
+--  Schema reflects all migrations 001-011:
 --    - prices INTEGER[] + cost_prices INTEGER[] (replaces scalar price columns)
 --    - sizes TEXT[] free-form (no hardcoded options)
 --    - inventory_images table (multi-photo per product)
 --    - No emoji column, no image_path column on inventory
 --    - is_featured BOOLEAN + featured_accent VARCHAR(7) on inventory
+--    - inventory.location TEXT (piedmont | centre) — store assignment
 --    - delivery_zones table (admin-managed, replaces ENUM)
 --    - delivery_zone + zone columns are TEXT (no ENUM)
 --    - orders: fulfillment_type, pickup fields, processing_fee, customer_id
+--    - orders.pickup_location TEXT — which store the customer will pick up from
+--    - orders: pickup_date removed (stored in delivery_date for both types)
 --    - customers + customer_addresses tables
 -- ================================================================
 
@@ -143,6 +146,7 @@ CREATE TABLE IF NOT EXISTS inventory (
   in_stock             BOOLEAN       NOT NULL DEFAULT TRUE,
   is_featured          BOOLEAN       NOT NULL DEFAULT FALSE,
   featured_accent      VARCHAR(7)    NOT NULL DEFAULT '#D4511A',
+  location             TEXT          NOT NULL DEFAULT 'piedmont' CHECK (location IN ('piedmont', 'centre')),
   created_at           TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
   updated_at           TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 );
@@ -192,8 +196,8 @@ CREATE TABLE IF NOT EXISTS orders (
   delivery_zone     TEXT,
   delivery_date     DATE,
   delivery_window   TEXT          NOT NULL DEFAULT 'afternoon',
-  pickup_date       DATE,
   pickup_time       VARCHAR(20),
+  pickup_location   TEXT          DEFAULT 'piedmont',
   note_message      TEXT,
   staff_notes       TEXT,
   stripe_payment_id VARCHAR(200),

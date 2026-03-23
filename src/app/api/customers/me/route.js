@@ -17,7 +17,7 @@ export async function GET() {
         [session.id]
       ),
       pool.query(
-        `SELECT id, label, address_line, city, state, zip, zone, is_default
+        `SELECT id, label, address_line, city, state, zip, is_default
          FROM customer_addresses
          WHERE customer_id = $1
          ORDER BY is_default DESC, created_at ASC`,

@@ -16,7 +16,7 @@ export async function GET(_request, { params }) {
 
     const result = await pool.query(
       `SELECT inv.id, inv.sku, inv.name, inv.description, inv.prices, inv.cost_prices,
-              inv.category, inv.tag, inv.sizes, inv.supplier,
+              inv.category, inv.tag, inv.sizes, inv.supplier, inv.location,
               inv.stock_count, inv.low_stock_threshold,
               inv.in_stock, inv.is_featured, inv.featured_accent,
               inv.created_at, inv.updated_at,
@@ -49,8 +49,6 @@ export async function PATCH(request, { params }) {
 
     
     let { id } = await params;
-    id = parseInt(id)
-
     const body = await request.json();
 
     // Validate sizes/prices alignment if both are being updated
@@ -66,7 +64,7 @@ export async function PATCH(request, { params }) {
 
     const ALLOWED      = [
       "name", "description", "prices", "cost_prices", "category",
-      "tag", "sizes", "supplier",
+      "tag", "sizes", "supplier", "location",
       "stock_count", "low_stock_threshold", "in_stock",
       "is_featured", "featured_accent",
     ];

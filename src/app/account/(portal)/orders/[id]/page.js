@@ -114,7 +114,7 @@ export default function OrderDetailPage() {
         <div className="font-sans font-extrabold text-[10px] tracking-[2px] uppercase text-brand-smoke mb-3">Delivery</div>
         <div className="font-sans text-[13px] text-brand-black leading-relaxed mb-2">{order.delivery_address}</div>
         <div className="font-sans text-[12px] text-brand-smoke">
-          {new Date(order.delivery_date + "T00:00:00").toLocaleDateString("en-US", { dateStyle: "long" })}
+          {new Date(order.delivery_date).toLocaleDateString("en-US", { dateStyle: "long" })}
           {" · "}
           {order.delivery_window === "morning" ? "Morning (9AM–12PM)" : "Afternoon (12PM–5PM)"}
           {" · "}

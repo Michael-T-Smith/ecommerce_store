@@ -131,7 +131,7 @@ const NAV_SECTIONS = [
   },
 ];
 
-export default function DashboardSidebar() {
+export default function DashboardSidebar({ open = false, onClose }) {
   const pathname   = usePathname();
   const { user }   = useDashboardSession();
 
@@ -140,9 +140,14 @@ export default function DashboardSidebar() {
   }
 
   return (
-    <aside className="hidden md:flex flex-col w-[240px] flex-shrink-0 bg-brand-bark border-r-[3px] border-brand-black overflow-y-auto">
+    <aside className={`
+      flex flex-col w-[240px] flex-shrink-0 bg-brand-bark border-r-[3px] border-brand-black overflow-y-auto
+      fixed inset-y-0 left-0 z-[50] transition-transform duration-200
+      md:relative md:translate-x-0 md:z-auto
+      ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+    `}>
 
-      {/* Logo */}
+      {/* Logo + mobile close */}
       <div className="flex items-center gap-3 px-5 py-5 border-b-[2px] border-brand-cream/10">
         <div className="w-9 h-9 bg-brand-orange rounded-full border-2 border-brand-cream flex items-center justify-center flex-shrink-0">
           <FlowerMark size={20} fill={B.cream} stroke={B.black} />
@@ -155,6 +160,18 @@ export default function DashboardSidebar() {
             Dashboard
           </div>
         </div>
+        {/* Close button — mobile only */}
+        <button
+          onClick={onClose}
+          className="md:hidden ml-auto flex items-center justify-center w-8 h-8 text-brand-cream/60 hover:text-brand-cream transition-colors flex-shrink-0"
+          aria-label="Close menu"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       </div>
 
       {/* Nav */}
@@ -162,7 +179,7 @@ export default function DashboardSidebar() {
         {NAV_SECTIONS.map((section) => {
           const visible = section.items.filter(
             (item) => {
-              if ((item.adminOnly && user.role !== "admin") || !item.isActive) return false;
+              if (item.adminOnly && user.role !== "admin" || !item.isActive) return false;
               return !item.resource || canDo(user.role, item.resource, "read");
             }
           );
@@ -180,6 +197,7 @@ export default function DashboardSidebar() {
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={onClose}
                       className={`flex items-center gap-3 px-3 py-2.5 font-sans font-extrabold text-[12px] tracking-[0.3px] no-underline transition-colors ${
                         active
                           ? "bg-brand-orange text-brand-cream"

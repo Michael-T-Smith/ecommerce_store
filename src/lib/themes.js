@@ -9,8 +9,8 @@ export const HERO_THEMES = {
     panelBg     : "#D4511A",
     panelEmoji  : "💐",
     floatingTags: ["✿ Fresh Cut", "✦ Same Day", "❋ Local Love"],
-    start       : "2026-01-01T00:00:00Z",
-    end         : "2026-02-01T00:00:00Z",
+    start       : "2026-01-01",
+    end         : "2026-02-01",
   },
 
   valentines: {
@@ -23,8 +23,8 @@ export const HERO_THEMES = {
     panelBg     : "#751623",
     panelEmoji  : "🌹",
     floatingTags: ["❤️ Same Day", "✦ Feb 14th", "✿ Hand Tied"],
-    start       : "2026-02-01T00:00:00Z",
-    end         : "2026-02-15T00:00:00Z",
+    start       : "2026-02-01",
+    end         : "2026-02-15",
   },
 
   easter: {
@@ -37,8 +37,8 @@ export const HERO_THEMES = {
     panelBg     : "#F2C94C",
     panelEmoji  : "🐣",
     floatingTags: ["🐣 Spring", "✦ Pastels", "✿ Fresh"],
-    start       : "2026-02-15T00:00:00Z",
-    end         : "2026-04-06T00:00:00Z",
+    start       : "2026-02-15",
+    end         : "2026-04-06",
   },
 
   mothers: {
@@ -51,8 +51,8 @@ export const HERO_THEMES = {
     panelBg     : "#d63f94",
     panelEmoji  : "🌷",
     floatingTags: ["💐 For Mom", "✦ Sells Fast", "✿ Seasonal"],
-    start       : "2026-04-06T00:00:00Z",
-    end         : "2026-05-11T00:00:00Z",
+    start       : "2026-04-06",
+    end         : "2026-05-11",
   },
 
   graduation: {
@@ -65,8 +65,8 @@ export const HERO_THEMES = {
     panelBg     : "#3A86FF",
     panelEmoji  : "🎓",
     floatingTags: ["🎓 Congrats", "✦ Bright", "✿ Seasonal"],
-    start       : "2026-05-11T00:00:00Z",
-    end         : "2026-06-01T00:00:00Z",
+    start       : "2026-05-11",
+    end         : "2026-06-01",
   },
 
   fathers: {
@@ -79,8 +79,8 @@ export const HERO_THEMES = {
     panelBg     : "#6C757D",
     panelEmoji  : "👔",
     floatingTags: ["👔 For Dad", "✦ Modern", "✿ Clean"],
-    start       : "2026-06-01T00:00:00Z",
-    end         : "2026-06-22T00:00:00Z",
+    start       : "2026-06-01",
+    end         : "2026-06-22",
   },
 
   independence: {
@@ -93,8 +93,8 @@ export const HERO_THEMES = {
     panelBg     : "#1D3557",
     panelEmoji  : "🎆",
     floatingTags: ["🎆 Summer", "✦ Bold", "✿ Festive"],
-    start       : "2026-06-22T00:00:00Z",
-    end         : "2026-07-05T00:00:00Z",
+    start       : "2026-06-22",
+    end         : "2026-07-05",
   },
 
   labor: {
@@ -107,8 +107,8 @@ export const HERO_THEMES = {
     panelBg     : "#495057",
     panelEmoji  : "🛠️",
     floatingTags: ["🛠️ Weekend", "✦ Fresh", "✿ Seasonal"],
-    start       : "2026-07-05T00:00:00Z",
-    end         : "2026-09-08T00:00:00Z",
+    start       : "2026-07-05",
+    end         : "2026-09-08",
   },
 
   halloween: {
@@ -121,8 +121,8 @@ export const HERO_THEMES = {
     panelBg     : "#6A040F",
     panelEmoji  : "🎃",
     floatingTags: ["🎃 Spooky", "✦ Moody", "✿ Unique"],
-    start       : "2026-09-08T00:00:00Z",
-    end         : "2026-11-01T00:00:00Z",
+    start       : "2026-09-08",
+    end         : "2026-11-01",
   },
 
   thanksgiving: {
@@ -135,8 +135,8 @@ export const HERO_THEMES = {
     panelBg     : "#7F5539",
     panelEmoji  : "🦃",
     floatingTags: ["🦃 Gather", "✦ Warm", "✿ Rustic"],
-    start       : "2026-11-01T00:00:00Z",
-    end         : "2026-11-27T00:00:00Z",
+    start       : "2026-11-01",
+    end         : "2026-11-27",
   },
 
   blackfriday: {
@@ -149,8 +149,8 @@ export const HERO_THEMES = {
     panelBg     : "#FF6B6B",
     panelEmoji  : "🛍️",
     floatingTags: ["🛍️ Deals", "✦ Seasonal", "✿ Limited"],
-    start       : "2026-11-27T00:00:00Z",
-    end         : "2026-11-30T00:00:00Z",
+    start       : "2026-11-27",
+    end         : "2026-11-30",
   },
 
   cybermonday: {
@@ -163,8 +163,8 @@ export const HERO_THEMES = {
     panelBg     : "#0D6EFD",
     panelEmoji  : "💻",
     floatingTags: ["💻 Online", "✦ One Day", "✿ Deals"],
-    start       : "2026-11-30T00:00:00Z",
-    end         : "2026-12-01T00:00:00Z",
+    start       : "2026-11-30",
+    end         : "2026-12-01",
   },
 
   christmas: {
@@ -177,8 +177,8 @@ export const HERO_THEMES = {
     panelBg     : "#1A3A2A",
     panelEmoji  : "🎄",
     floatingTags: ["🎄 Holiday", "✦ Wreaths", "✿ Seasonal"],
-    start       : "2026-12-01T00:00:00Z",
-    end         : "2026-12-26T00:00:00Z",
+    start       : "2026-12-01",
+    end         : "2026-12-26",
   },
 
   newyear: {
@@ -191,7 +191,7 @@ export const HERO_THEMES = {
     panelBg     : "#FFD700",
     panelEmoji  : "🎆",
     floatingTags: ["🎆 Celebration", "✦ Festive", "✿ Fresh Start"],
-    start       : "2026-12-26T00:00:00Z",
-    end         : "2027-01-01T23:59:59Z",
+    start       : "2026-12-26",
+    end         : "2027-01-01",
   }
 };
