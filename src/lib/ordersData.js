@@ -9,7 +9,6 @@ export const ORDER_STATUSES = [
 ];
 
 // Status pipeline — which statuses can advance to which
-// Used to determine which "advance" button to show
 export const STATUS_NEXT = {
   pending         : "confirmed",
   confirmed       : "preparing",
@@ -17,6 +16,13 @@ export const STATUS_NEXT = {
   out_for_delivery: "delivered",
   delivered       : null,
   cancelled       : null,
+};
+
+// Reverse pipeline — admin/manager only backpedal
+export const STATUS_PREV = {
+  confirmed       : "pending",
+  preparing       : "confirmed",
+  out_for_delivery: "preparing",
 };
 
 export const ORDERS_MOCK = [

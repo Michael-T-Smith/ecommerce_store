@@ -7,7 +7,7 @@ import AnnouncementBar  from "@/app/components/AnnouncementBar/AnnouncementBar";
 import Navbar           from "@/app/components/Navbar/Navbar";
 import Footer           from "@/app/components/Footer/Footer";
 import { B }            from "@/lib/brand";
-import { DELIVERY_ZONES } from "@/lib/deliveryZones";
+// Zone label shown as stored — works for any custom zone value
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(dateStr) {
@@ -75,7 +75,13 @@ export default function OrderConfirmationPage() {
     } catch { return []; }
   })();
 
-  const zoneLabel = DELIVERY_ZONES.find((z) => z.value === order?.delivery_zone)?.label ?? order?.delivery_zone;
+  // delivery_zone is stored as a readable slug — display as-is or capitalised
+  const zoneLabel = order?.delivery_zone
+    ? order.delivery_zone.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+    : '—';
+  const isPickup        = order?.fulfillment_type === "pickup";
+  const fulfillmentDate = isPickup ? order?.delivery_date : order?.delivery_date;
+  const isGuest         = !order?.customer_id;
 
   return (
     <div className="font-serif bg-brand-cream min-h-screen overflow-x-hidden">
@@ -131,6 +137,64 @@ export default function OrderConfirmationPage() {
               </div>
             </div>
 
+            {/* ── Guest tracking notice ──────────────────────────────── */}
+            {isGuest && (
+              <div className="mb-6 border-[3px] border-brand-orange bg-white overflow-hidden shadow-retro-sm">
+                <div className="bg-brand-orange px-6 py-3 flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke={B.cream} strokeWidth="2.5" strokeLinecap="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  <span className="font-sans font-extrabold text-[10px] tracking-[2px] uppercase text-brand-cream">
+                    Save these to track your order
+                  </span>
+                </div>
+                <div className="px-6 py-5 flex flex-col gap-4">
+                  <p className="font-sans text-[13px] text-brand-smoke leading-relaxed">
+                    You checked out as a guest. To check your order status at any time, you&apos;ll need both of the following:
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="bg-brand-cream border-[2px] border-brand-black/20 px-4 py-3">
+                      <div className="font-sans font-extrabold text-[9px] tracking-[2px] uppercase text-brand-smoke mb-1">
+                        Order Number
+                      </div>
+                      <div className="font-sans font-black text-[16px] text-brand-orange tracking-[1px]">
+                        {order.order_number}
+                      </div>
+                    </div>
+                    <div className="bg-brand-cream border-[2px] border-brand-black/20 px-4 py-3">
+                      <div className="font-sans font-extrabold text-[9px] tracking-[2px] uppercase text-brand-smoke mb-1">
+                        Email Address
+                      </div>
+                      <div className="font-sans font-black text-[14px] text-brand-black break-all">
+                        {order.customer_email}
+                      </div>
+                    </div>
+                  </div>
+                  <Link
+                    href="/order/track"
+                    className="inline-flex items-center justify-center gap-2 font-sans font-black text-[11px] tracking-[2px] uppercase bg-brand-orange text-brand-cream border-[2px] border-brand-black px-6 py-3 no-underline shadow-retro-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all self-start"
+                  >
+                    Track My Order →
+                  </Link>
+                  <div className="border-t border-gray-200 pt-4">
+                    <p className="font-sans text-[12px] text-brand-smoke leading-relaxed">
+                      Want to skip this next time?{" "}
+                      <Link
+                        href={`/account/register?email=${encodeURIComponent(order.customer_email ?? "")}`}
+                        className="text-brand-orange font-extrabold no-underline hover:underline"
+                      >
+                        Create a free account
+                      </Link>{" "}
+                      using <strong>{order.customer_email}</strong> — your order history will be saved automatically.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
               {/* ── Delivery details ─────────────────────────────────── */}
@@ -147,10 +211,16 @@ export default function OrderConfirmationPage() {
                 </div>
                 <div className="px-6 py-5 flex flex-col gap-4">
                   {[
-                    { label: "Deliver To",   value: order.delivery_address },
-                    { label: "Zone",         value: zoneLabel              },
-                    { label: "Date",         value: formatDate(order.delivery_date) },
-                    { label: "Window",       value: `${capitalise(order.delivery_window)} delivery` },
+                    ...(isPickup ? [
+                      { label: "Location", value: order.pickup_location === "centre" ? "Centre — 1470 W Main St, Ste H, Centre, AL 35960" : "Piedmont — 211 Memorial Dr, Piedmont, AL 36272" },
+                      { label: "Date",     value: formatDate(order.delivery_date) },
+                      { label: "Time",     value: order.pickup_time ?? "—" },
+                    ] : [
+                      { label: "Deliver To",  value: order.delivery_address },
+                      { label: "Zone",        value: zoneLabel },
+                      { label: "Date",        value: formatDate(order.delivery_date) },
+                      { label: "Window",      value: order.delivery_window ? `${order.delivery_window} window` : "—" },
+                    ]),
                     ...(order.note_message ? [{ label: "Card Message", value: order.note_message }] : []),
                   ].map(({ label, value }) => (
                     <div key={label}>
@@ -267,20 +337,37 @@ export default function OrderConfirmationPage() {
 
             {/* CTAs */}
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-              {order.customer_email && (
-                <Link
-                  href="/account/orders"
-                  className="font-sans font-black text-[12px] tracking-[2px] uppercase bg-brand-black text-brand-cream border-[3px] border-brand-black px-8 py-4 no-underline shadow-retro-md hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-retro-sm transition-all text-center"
-                >
-                  View My Orders
-                </Link>
+              {isGuest ? (
+                <>
+                  <Link
+                    href="/order/track"
+                    className="font-sans font-black text-[12px] tracking-[2px] uppercase bg-brand-black text-brand-cream border-[3px] border-brand-black px-8 py-4 no-underline shadow-retro-md hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-retro-sm transition-all text-center"
+                  >
+                    Track My Order
+                  </Link>
+                  <Link
+                    href={`/account/register?email=${encodeURIComponent(order.customer_email ?? "")}`}
+                    className="font-sans font-black text-[12px] tracking-[2px] uppercase bg-brand-cream text-brand-black border-[3px] border-brand-black px-8 py-4 no-underline shadow-retro-md hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-retro-sm transition-all text-center"
+                  >
+                    Create Account
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/account/orders"
+                    className="font-sans font-black text-[12px] tracking-[2px] uppercase bg-brand-black text-brand-cream border-[3px] border-brand-black px-8 py-4 no-underline shadow-retro-md hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-retro-sm transition-all text-center"
+                  >
+                    View My Orders
+                  </Link>
+                  <Link
+                    href="/shop"
+                    className="font-sans font-black text-[12px] tracking-[2px] uppercase bg-brand-cream text-brand-black border-[3px] border-brand-black px-8 py-4 no-underline shadow-retro-md hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-retro-sm transition-all text-center"
+                  >
+                    Continue Shopping
+                  </Link>
+                </>
               )}
-              <Link
-                href="/shop"
-                className="font-sans font-black text-[12px] tracking-[2px] uppercase bg-brand-cream text-brand-black border-[3px] border-brand-black px-8 py-4 no-underline shadow-retro-md hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-retro-sm transition-all text-center"
-              >
-                Continue Shopping
-              </Link>
             </div>
 
           </div>

@@ -74,7 +74,7 @@ export default function AboutStory() {
           <div className="flex flex-col gap-5 font-sans text-[14px] sm:text-[15px] text-brand-smoke leading-[1.8]">
             <p>
               Lamb&apos;s Florist started the way most good things do — with a person
-              who simply loved what they did. Cecelia Bates has spent decades
+              who simply loved what they did. Cecelia Lamb has spent decades
               learning the language of flowers: which blooms hold up in Alabama
               heat, which combinations catch the eye, which arrangements make
               people stop and stare.
@@ -99,7 +99,7 @@ export default function AboutStory() {
             </div>
             <div>
               <div className="font-serif font-black text-brand-black text-[16px] tracking-[-0.5px]">
-                Cecelia &amp; Frank Bates
+                Cecelia &amp; Frank Lamb
               </div>
               <div className="font-sans text-[11px] font-extrabold tracking-[2px] uppercase text-brand-smoke">
                 Owners, Lamb&apos;s Florist

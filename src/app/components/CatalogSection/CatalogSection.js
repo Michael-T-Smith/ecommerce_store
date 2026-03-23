@@ -1,25 +1,14 @@
-// src/app/components/Catalog/CatalogSection.js
-//
-// Homepage "Shop the Collection" — horizontal scroll on mobile, 4-col desktop.
-// Size picker shown whenever isOpen && multiSize (no !inCart guard).
-// Chips show ×qty for sizes already in the cart.
-
 "use client";
 
 import { useState }       from "react";
 import Link               from "next/link";
-import { CATALOG }        from "@/lib/data";
 import { useCart }        from "@/app/CartContext";
 import { B }              from "@/lib/brand";
 import FlowerMark         from "@/app/components/icons/FlowerMark";
 import ProductCardActions from "@/app/components/ProductCardActions/ProductCardActions";
+import Image from "next/image";
 
-const PREVIEW_ITEMS = [
-  ...CATALOG.filter((c) =>  c.inStock),
-  ...CATALOG.filter((c) => !c.inStock),
-].slice(0, 8);
-
-export default function CatalogSection() {
+export default function CatalogSection({ items = [] }) {
   const { addItem, items: cartItems } = useCart();
   const [pickerOpen, setPickerOpen] = useState({});
 
@@ -66,129 +55,146 @@ export default function CatalogSection() {
         />
       </div>
 
-      <div className="px-5 sm:px-10 lg:px-16">
-        <div className="flex gap-4 overflow-x-auto pb-4 sm:pb-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-6 max-w-[1200px] mx-auto scrollbar-hide">
-          {PREVIEW_ITEMS.map((item) => {
-            const multiSize = item.sizes?.length > 1;
-            const isOpen    = !!pickerOpen[item.id];
-            const totalQty  = totalQtyFor(item.id);
-            const inCart    = totalQty > 0;
-
-            return (
-              <div
-                key={item.id}
-                className={`flex-shrink-0 w-[240px] sm:w-auto bg-brand-cream border-[3px] overflow-hidden group hover:-translate-y-1 hover:shadow-retro-lg shadow-retro-sm transition-all duration-[180ms] ${
-                  item.inStock ? "border-brand-black" : "border-brand-smoke/40"
-                }`}
-              >
-                {/* Image */}
-                <div
-                  className="h-[180px] flex items-center justify-center relative overflow-hidden"
-                  style={{ background: item.inStock ? "#F0E8DE" : "#E8E4DE" }}
-                >
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      background: `repeating-linear-gradient(-55deg,
-                        transparent 0, transparent 18px,
-                        rgba(0,0,0,0.03) 18px, rgba(0,0,0,0.03) 20px)`,
-                    }}
-                  />
-                  <span
-                    className={`text-[60px] z-[1] leading-none transition-transform duration-200 group-hover:scale-110 ${
-                      !item.inStock ? "opacity-40 grayscale" : ""
-                    }`}
-                  >
-                    {item.emoji}
-                  </span>
-
-                  {inCart && item.inStock && (
-                    <div className="absolute top-2 left-0 bg-brand-orange text-brand-cream font-sans font-extrabold text-[8px] tracking-[1px] uppercase px-2.5 py-1 border-r-[3px] border-brand-black z-[2] flex items-center gap-1">
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      In Bag · {totalQty}
-                    </div>
-                  )}
-                  {item.tag && item.inStock && !inCart && (
-                    <div className="absolute top-2 left-0 bg-brand-black text-brand-cream font-sans font-extrabold text-[8px] tracking-[1.5px] uppercase px-2.5 py-1 border-r-[2px] border-brand-orange z-[2]">
-                      {item.tag}
-                    </div>
-                  )}
-                  {!item.inStock && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-brand-cream/60 z-[2]">
-                      <span className="bg-brand-smoke text-brand-cream font-sans font-extrabold text-[9px] tracking-[2px] uppercase px-3 py-1 border border-brand-smoke">
-                        Out of Stock
-                      </span>
-                    </div>
-                  )}
-                  <div className="absolute bottom-1.5 right-1.5 bg-brand-cream/90 text-brand-smoke font-sans font-extrabold text-[7px] tracking-[1px] uppercase px-1.5 py-0.5 border border-brand-smoke/30 z-[3]">
-                    {item.category}
-                  </div>
-                </div>
-
-                {/* Card body */}
-                <div className="p-3.5">
-                  <div className="font-serif text-[14px] font-bold text-brand-black leading-tight mb-1">
-                    {item.name}
-                  </div>
-                  <p className="font-sans text-[10px] text-brand-smoke leading-relaxed mb-3 line-clamp-2">
-                    {item.description}
-                  </p>
-
-                  {/* Size picker — no !inCart guard */}
-                  {isOpen && multiSize && item.inStock && (
-                    <div className="mb-3 pt-2 border-t border-brand-black/10 flex flex-wrap gap-1.5">
-                      <span className="font-sans text-[8px] font-extrabold tracking-[1px] uppercase text-brand-smoke w-full mb-0.5">
-                        {inCart ? "Add size:" : "Size:"}
-                      </span>
-                      {item.sizes.map((size) => {
-                        const sizeQty = qtyForSize(item.id, size);
-                        return (
-                          <button
-                            key={size}
-                            onClick={() => addItem(item, size)}
-                            className={`font-sans text-[8px] font-extrabold tracking-[1px] uppercase px-2 py-1 border-[2px] cursor-pointer transition-colors ${
-                              sizeQty > 0
-                                ? "border-brand-orange bg-brand-orange text-brand-cream hover:bg-brand-black hover:border-brand-black"
-                                : "border-brand-black bg-brand-cream text-brand-black hover:bg-brand-black hover:text-brand-cream"
-                            }`}
-                          >
-                            {size}{sizeQty > 0 ? ` ×${sizeQty}` : ""}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="font-sans font-black text-[18px] text-brand-orange">
-                      ${item.price}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      {item.inStock ? (
-                        <ProductCardActions
-                          product={item}
-                          isPickerOpen={isOpen}
-                          onTogglePicker={() => togglePicker(item.id)}
-                          compact
-                        />
-                      ) : (
-                        <button
-                          disabled
-                          className="border-none px-2.5 py-1.5 font-sans font-extrabold text-[8px] tracking-[1px] uppercase bg-brand-smoke/30 text-brand-smoke/60 cursor-not-allowed"
-                        >
-                          + Bag
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      {items.length === 0 ? (
+        <div className="px-5 sm:px-10 lg:px-16 max-w-[1200px] mx-auto py-16 text-center">
+          <div className="text-[56px] mb-4">🌾</div>
+          <p className="font-sans text-brand-smoke text-[14px] leading-relaxed">
+            No inventory found. Add items from the{" "}
+            <a href="/dashboard/inventory"
+              className="text-brand-orange font-extrabold no-underline hover:underline">
+              dashboard
+            </a>.
+          </p>
         </div>
-      </div>
+      ) : (
+        <div className="px-5 sm:px-10 lg:px-16">
+          <div className="flex gap-4 overflow-x-auto pb-4 sm:pb-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-6 max-w-[1200px] mx-auto scrollbar-hide">
+            {items.map((item) => {
+              const multiSize = item.sizes?.length > 1;
+              const isOpen    = !!pickerOpen[item.id];
+              const totalQty  = totalQtyFor(item.id);
+              const inCart    = totalQty > 0;
+
+              return (
+                <div
+                  key={item.id}
+                  className={`flex-shrink-0 w-[240px] sm:w-auto bg-brand-cream border-[3px] overflow-hidden group hover:-translate-y-1 hover:shadow-retro-lg shadow-retro-sm transition-all duration-[180ms] ${
+                    item.inStock ? "border-brand-black" : "border-brand-smoke/40"
+                  }`}
+                >
+                  {/* Image */}
+                  <div
+                    className="h-[180px] flex items-center justify-center relative overflow-hidden"
+                    style={{ background: item.inStock ? "#F0E8DE" : "#E8E4DE" }}
+                  >
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        background: `repeating-linear-gradient(-55deg,
+                          transparent 0, transparent 18px,
+                          rgba(0,0,0,0.03) 18px, rgba(0,0,0,0.03) 20px)`,
+                      }}
+                    />
+                    {item.images?.[0]?.path ? (
+                      <Image src={item.images[0].path} alt={item.name} height={150} width={150}
+                        className={`${
+                          !item.inStock ? "opacity-40 grayscale" : ""
+                        }`} />
+                    ) : (
+                      <span className={`text-[60px] z-[1] leading-none ${
+                        !item.inStock ? "opacity-40 grayscale" : ""
+                      }`}>🌸</span>
+                    )}
+
+                    {inCart && item.inStock && (
+                      <div className="absolute top-2 left-0 bg-brand-orange text-brand-cream font-sans font-extrabold text-[8px] tracking-[1px] uppercase px-2.5 py-1 border-r-[3px] border-brand-black z-[2] flex items-center gap-1">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth="4" strokeLinecap="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        In Bag · {totalQty}
+                      </div>
+                    )}
+                    {item.tag && item.inStock && !inCart && (
+                      <div className="absolute top-2 left-0 bg-brand-black text-brand-cream font-sans font-extrabold text-[8px] tracking-[1.5px] uppercase px-2.5 py-1 border-r-[2px] border-brand-orange z-[2]">
+                        {item.tag}
+                      </div>
+                    )}
+                    {!item.inStock && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-brand-cream/60 z-[2]">
+                        <span className="bg-brand-smoke text-brand-cream font-sans font-extrabold text-[9px] tracking-[2px] uppercase px-3 py-1 border border-brand-smoke">
+                          Out of Stock
+                        </span>
+                      </div>
+                    )}
+                    <div className="absolute bottom-1.5 right-1.5 bg-brand-cream/90 text-brand-smoke font-sans font-extrabold text-[7px] tracking-[1px] uppercase px-1.5 py-0.5 border border-brand-smoke/30 z-[3]">
+                      {item.category}
+                    </div>
+                  </div>
+
+                  {/* Card body */}
+                  <div className="p-3.5">
+                    <div className="font-serif text-[14px] font-bold text-brand-black leading-tight mb-1">
+                      {item.name}
+                    </div>
+                    <p className="font-sans text-[10px] text-brand-smoke leading-relaxed mb-3 line-clamp-2">
+                      {item.description}
+                    </p>
+
+                    {/* Size picker */}
+                    {isOpen && multiSize && item.inStock && (
+                      <div className="mb-3 pt-2 border-t border-brand-black/10 flex flex-wrap gap-1.5">
+                        <span className="font-sans text-[8px] font-extrabold tracking-[1px] uppercase text-brand-smoke w-full mb-0.5">
+                          {inCart ? "Add size:" : "Size:"}
+                        </span>
+                        {item.sizes.map((size) => {
+                          const sizeQty = qtyForSize(item.id, size);
+                          return (
+                            <button
+                              key={size}
+                              onClick={() => addItem(item, size)}
+                              className={`font-sans text-[8px] font-extrabold tracking-[1px] uppercase px-2 py-1 border-[2px] cursor-pointer transition-colors ${
+                                sizeQty > 0
+                                  ? "border-brand-orange bg-brand-orange text-brand-cream hover:bg-brand-black hover:border-brand-black"
+                                  : "border-brand-black bg-brand-cream text-brand-black hover:bg-brand-black hover:text-brand-cream"
+                              }`}
+                            >
+                              {size}{sizeQty > 0 ? ` ×${sizeQty}` : ""}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="font-sans font-black text-[18px] text-brand-orange">
+                        {item.prices?.length > 1 ? "from " : ""}${item.prices?.[0] ?? item.price ?? 0}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {item.inStock ? (
+                          <ProductCardActions
+                            product={item}
+                            isPickerOpen={isOpen}
+                            onTogglePicker={() => togglePicker(item.id)}
+                            compact
+                          />
+                        ) : (
+                          <button
+                            disabled
+                            className="border-none px-2.5 py-1.5 font-sans font-extrabold text-[8px] tracking-[1px] uppercase bg-brand-smoke/30 text-brand-smoke/60 cursor-not-allowed"
+                          >
+                            + Bag
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

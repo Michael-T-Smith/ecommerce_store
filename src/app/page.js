@@ -1,42 +1,81 @@
+import pool           from "@/lib/db";
+import HomePageClient from "./HomePageClient";
 
-"use client";
+export const metadata = {
+  title      : "Lamb's Florist — Piedmont, Alabama",
+  description: "Fresh arrangements, plants, and gifts. Handcrafted at our Piedmont studio. Delivery to Piedmont, Anniston, and Centre.",
+};
 
-import { useState } from "react";
+export const revalidate = 60;
 
-import AnnouncementBar      from "@/app/components/AnnouncementBar/AnnouncementBar";
-import Navbar               from "@/app/components/Navbar/Navbar";
-import HeroSection          from "@/app/components/HeroSection/HeroSection";
-import OccasionsTicker      from "@/app/components/OccasionsTicker/OccasionsTicker";
-import FeaturedArrangements from "@/app/components/FeaturedArrangements/FeaturedArrangements";
-import CatalogSection       from "@/app/components/CatalogSection/CatalogSection";
-import PromoBand            from "@/app/components/PromoBand/PromoBand";
-import Footer               from "@/app/components/Footer/Footer";
-import ThemeSwitcher        from "@/app/components/ThemeSwitcher/ThemeSwitcher";
+// Snake_case DB row → camelCase frontend item
+// Used for both featured and catalog items — same shape either way.
+function dbRowToItem(row) {
+  return {
+    id            : row.id,
+    sku           : row.sku,
+    name          : row.name,
+    description   : row.description   ?? "",
+    prices        : Array.isArray(row.prices) ? row.prices.map(Number) : [0],
+    category      : row.category,
+    tag           : row.tag           ?? null,
+    images        : Array.isArray(row.images) ? row.images : [],
+    sizes         : Array.isArray(row.sizes) ? row.sizes : [],
+    inStock       : Boolean(row.in_stock),
+    stockCount    : Number(row.stock_count  ?? 0),
+    featuredAccent: row.featured_accent     ?? "#D4511A",
+  };
+}
 
-import { HERO_THEMES } from "@/lib/themes";
+const ITEM_COLS = `
+  inv.id, inv.sku, inv.name, inv.description, inv.prices, inv.category, inv.tag,
+  inv.sizes, inv.stock_count, inv.in_stock, inv.featured_accent,
+  COALESCE(
+    json_agg(json_build_object('id', ii.id, 'path', ii.path)
+      ORDER BY ii.display_order ASC)
+    FILTER (WHERE ii.id IS NOT NULL), '[]'
+  ) AS images
+`;
 
-export default function HomePage() {
-  const [cartCount, setCartCount] = useState(0);
-  const [themeKey,  setThemeKey ] = useState("default");
+export default async function HomePage() {
+  let featuredItems = [];
+  let catalogItems  = [];
 
-  const addToCart = () => setCartCount((c) => c + 1);
-  const theme     = HERO_THEMES[themeKey];
+  try {
+    // Both queries run in parallel — no sequential waterfall
+    const [featuredResult, catalogResult] = await Promise.all([
+      pool.query(
+        `SELECT ${ITEM_COLS}
+         FROM inventory inv
+         LEFT JOIN inventory_images ii ON ii.inventory_id = inv.id
+         WHERE inv.is_featured = TRUE AND inv.in_stock = TRUE
+         GROUP BY inv.id
+         ORDER BY inv.updated_at DESC
+         LIMIT 3`
+      ),
+      pool.query(
+        // In-stock items first, then out-of-stock — matches the old mock order.
+        // Limit 8 for the homepage preview strip.
+        `SELECT ${ITEM_COLS}
+         FROM inventory inv
+         LEFT JOIN inventory_images ii ON ii.inventory_id = inv.id
+         GROUP BY inv.id
+         ORDER BY inv.in_stock DESC, inv.category ASC, inv.name ASC
+         LIMIT 8`
+      ),
+    ]);
+
+    featuredItems = featuredResult.rows.map(dbRowToItem);
+    catalogItems  = catalogResult.rows.map(dbRowToItem);
+  } catch (err) {
+    // DB unreachable — homepage renders with empty sections rather than crashing
+    console.error("[HomePage] DB error:", err.message);
+  }
 
   return (
-    <div className="font-serif bg-brand-cream min-h-screen overflow-x-hidden">
-      <AnnouncementBar />
-      <Navbar
-        cartCount={cartCount}
-      />
-      <HeroSection theme={theme} />
-      <OccasionsTicker />
-      <FeaturedArrangements onAddToCart={addToCart} />
-      <CatalogSection       onAddToCart={addToCart} />
-      <PromoBand />
-      <Footer />
-
-      {/* Remove or gate behind admin session before going live */}
-      <ThemeSwitcher activeTheme={themeKey} onChange={setThemeKey} />
-    </div>
+    <HomePageClient
+      featuredItems={featuredItems}
+      catalogItems={catalogItems}
+    />
   );
 }

@@ -29,12 +29,23 @@ export async function GET(_request, { params }) {
 export async function PATCH(request, { params }) {
   try {
     const user = await getServerUser();
+    const { id } = await params;
     if (!user)                                 return forbidden("Not authenticated.");
     if (!canDo(user.role, "orders", "update")) return forbidden();
 
     const body = await request.json();
-    const ALLOWED = ["status", "staff_notes", "stripe_payment_id"];
-    const camelToSnake = { staffNotes: "staff_notes", stripePaymentId: "stripe_payment_id" };
+    const isElevated   = user.role === "admin" || user.role === "manager";
+    const ALLOWED      = isElevated
+      ? ["status", "staff_notes", "stripe_payment_id", "delivery_date", "delivery_window", "delivery_address", "pickup_location"]
+      : ["status", "staff_notes", "stripe_payment_id"];
+    const camelToSnake = {
+      staffNotes      : "staff_notes",
+      stripePaymentId : "stripe_payment_id",
+      deliveryDate    : "delivery_date",
+      deliveryWindow  : "delivery_window",
+      deliveryAddress : "delivery_address",
+      pickupLocation  : "pickup_location",
+    };
 
     const sets = [], values = [];
     let   p    = 1;
@@ -45,10 +56,10 @@ export async function PATCH(request, { params }) {
     }
 
     if (!sets.length) return badRequest("No valid fields provided for update.");
-
-    values.push(params.id);
+    
+    values.push(id);
     const result = await pool.query(
-      `UPDATE orders SET ${sets.join(", ")} WHERE order_number = $${p} RETURNING *`,
+      `UPDATE orders SET ${sets.join(", ")} WHERE id = $${p} RETURNING *`,
       values
     );
 

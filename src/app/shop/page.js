@@ -1,91 +1,74 @@
-"use client";
+import pool          from "@/lib/db";
+import ShopPageClient from "./ShopPageClient";
 
-import { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import AnnouncementBar  from "@/app/components/AnnouncementBar/AnnouncementBar";
-import Navbar           from "@/app/components/Navbar/Navbar";
-import ShopBanner       from "@/app/components/ShopBanner/ShopBanner";
-import ShopFilters      from "@/app/components/ShopFilters/ShopFilters";
-import ShopGrid         from "@/app/components/ShopGrid/ShopGrid";
-import PromoBand        from "@/app/components/PromoBand/PromoBand";
-import Footer           from "@/app/components/Footer/Footer";
-import { CATALOG, CATALOG_CATEGORIES } from "@/lib/data";
+// Map a DB row (snake_case, pg types) to the frontend item shape
+// (camelCase) that ShopGrid and ProductCardActions already expect.
+function dbRowToItem(row) {
+  return {
+    id         : row.id,
+    sku        : row.sku,
+    name       : row.name,
+    description: row.description ?? "",
+    prices     : Array.isArray(row.prices) ? row.prices.map(Number) : [0],
+    category   : row.category,
+    tag        : row.tag     ?? null,
+    images     : Array.isArray(row.images) ? row.images : [],
+    sizes      : Array.isArray(row.sizes) ? row.sizes : [],
+    supplier   : row.supplier ?? null,
+    stockCount : Number(row.stock_count  ?? 0),
+    inStock    : Boolean(row.in_stock),
+  };
+}
 
-export default function ShopPage() {
-  const searchParams = useSearchParams();
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [sortBy,         setSortBy        ] = useState("default");
-  const [searchQuery,    setSearchQuery   ] = useState("");
-  const [inStockOnly,    setInStockOnly   ] = useState(false);
+export const metadata = {
+  title      : "Shop — Lamb's Florist",
+  description: "Fresh arrangements, plants, and gifts — handcrafted daily in Piedmont, AL.",
+};
 
-  // Seed search query from Navbar ?q= param
-  useEffect(() => {
-    const q = searchParams.get("q");
-    if (q) setSearchQuery(decodeURIComponent(q));
-  }, [searchParams]);
+// Revalidate every 60 s so the page stays fresh without a full rebuild.
+// Inventory changes made in the dashboard appear within a minute.
+export const revalidate = 60;
 
-    useEffect(() => {
-    const cate = searchParams.get("category");
-    if (cate) setActiveCategory(cate);
-  }, [searchParams]);
+export default async function ShopPage() {
+  let items      = [];
+  let categories = ["All"];
+  let dbError    = false;
 
-  const filteredItems = useMemo(() => {
-    let result = [...CATALOG];
+  try {
+    const result = await pool.query(
+`SELECT inv.id, inv.sku, inv.name, inv.description, inv.prices, inv.category, inv.tag,
+              inv.sizes, inv.supplier, inv.stock_count, inv.in_stock,
+              COALESCE(
+                json_agg(json_build_object('id', ii.id, 'path', ii.path)
+                  ORDER BY ii.display_order ASC)
+                FILTER (WHERE ii.id IS NOT NULL), '[]'
+              ) AS images
+       FROM inventory inv
+       LEFT JOIN inventory_images ii ON ii.inventory_id = inv.id
+       GROUP BY inv.id
+       ORDER BY inv.category ASC, inv.name ASC`
+    );
 
-    if (activeCategory !== "All") {
-      result = result.filter((i) => i.category === activeCategory);
+    items = result.rows.map(dbRowToItem);
+
+    // Derive category list from actual DB data — stays in sync automatically.
+    const seen = new Set();
+    for (const item of items) {
+      if (item.category && !seen.has(item.category)) {
+        seen.add(item.category);
+        categories.push(item.category);
+      }
     }
-    if (inStockOnly) {
-      result = result.filter((i) => i.inStock);
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (i) =>
-          i.name.toLowerCase().includes(q) ||
-          i.description.toLowerCase().includes(q) ||
-          i.category.toLowerCase().includes(q)
-      );
-    }
-    switch (sortBy) {
-      case "price-asc":  result.sort((a, b) => a.price - b.price);           break;
-      case "price-desc": result.sort((a, b) => b.price - a.price);           break;
-      case "name-asc":   result.sort((a, b) => a.name.localeCompare(b.name)); break;
-      default: break;
-    }
-
-    return result;
-  }, [activeCategory, sortBy, searchQuery, inStockOnly]);
+  } catch (err) {
+    console.error("[ShopPage] DB error:", err.message);
+    dbError = true;
+  }
 
   return (
-    <div className="font-serif bg-brand-cream min-h-screen overflow-x-hidden">
-      <AnnouncementBar />
-      <Navbar />
-
-      <ShopBanner
-        title="Shop"
-        subtitle="Fresh arrangements, plants, and gifts — all handcrafted at our Piedmont studio."
-      />
-
-      <ShopFilters
-        categories={CATALOG_CATEGORIES}
-        activeCategory={activeCategory}
-        onCategory={setActiveCategory}
-        sortBy={sortBy}
-        onSort={setSortBy}
-        searchQuery={searchQuery}
-        onSearch={setSearchQuery}
-        inStockOnly={inStockOnly}
-        onInStock={setInStockOnly}
-        resultCount={filteredItems.length}
-      />
-
-      <main className="px-5 sm:px-10 lg:px-16 py-10 sm:py-14">
-        <ShopGrid items={filteredItems} />
-      </main>
-
-      <PromoBand />
-      <Footer />
-    </div>
+    <ShopPageClient
+      initialItems={items}
+      categories={categories}
+      dbError={dbError}
+    />
   );
 }

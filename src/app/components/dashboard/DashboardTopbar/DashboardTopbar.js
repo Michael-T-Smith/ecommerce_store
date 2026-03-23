@@ -1,11 +1,10 @@
-
 "use client";
- 
+
 import { usePathname }         from "next/navigation";
 import Link                    from "next/link";
 import { useDashboardSession } from "@/app/dashboard/SessionContext";
 import { ROLE_META }           from "@/lib/permissions";
- 
+
 function getBreadcrumbs(pathname) {
   const segments = pathname.replace("/dashboard", "").split("/").filter(Boolean);
   if (segments.length === 0) return [{ label: "Dashboard", href: "/dashboard" }];
@@ -17,16 +16,30 @@ function getBreadcrumbs(pathname) {
     })),
   ];
 }
- 
-export default function DashboardTopbar() {
+
+export default function DashboardTopbar({ onMenuClick }) {
   const pathname         = usePathname();
   const { user, logout } = useDashboardSession();
   const breadcrumbs      = getBreadcrumbs(pathname);
   const roleMeta         = ROLE_META[user?.role] ?? ROLE_META.employee;
- 
+
   return (
     <header className="bg-white border-b border-gray-200 px-6 sm:px-8 lg:px-10 py-3.5 flex items-center justify-between gap-4 flex-shrink-0">
- 
+
+      {/* Hamburger — mobile only */}
+      <button
+        onClick={onMenuClick}
+        className="md:hidden flex items-center justify-center w-9 h-9 border-2 border-gray-200 text-brand-smoke hover:border-brand-orange hover:text-brand-orange transition-colors flex-shrink-0"
+        aria-label="Open menu"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="3" y1="6"  x2="21" y2="6"  />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 min-w-0">
         {breadcrumbs.map((crumb, i) => (
@@ -50,17 +63,17 @@ export default function DashboardTopbar() {
           </div>
         ))}
       </div>
- 
+
       {/* Right: role badge · storefront link · user info · logout */}
       <div className="flex items-center gap-3 flex-shrink-0">
- 
+
         <div
           className="font-sans font-extrabold text-[10px] tracking-[2px] uppercase px-3 py-1.5 border-2 hidden sm:block"
           style={{ color: roleMeta.color, borderColor: roleMeta.color, background: `${roleMeta.color}18` }}
         >
           {roleMeta.label}
         </div>
- 
+
         <a href="/" target="_blank" rel="noopener noreferrer"
           className="font-sans font-extrabold text-[11px] tracking-[1px] uppercase text-brand-smoke border border-gray-200 px-3 py-1.5 no-underline hover:border-brand-orange hover:text-brand-orange transition-colors hidden sm:flex items-center gap-1.5">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -71,7 +84,7 @@ export default function DashboardTopbar() {
           </svg>
           Storefront
         </a>
- 
+
         <div className="flex items-center gap-2 border-l border-gray-200 pl-3">
           <div className="hidden sm:block text-right">
             <div className="font-sans font-extrabold text-[12px] text-brand-black leading-tight">

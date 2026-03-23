@@ -77,7 +77,7 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
     }
 
-    const id     = parseInt(params.id);
+    const { id } = await params;
     const result = await pool.query(
       "DELETE FROM customer_addresses WHERE id = $1 AND customer_id = $2 RETURNING id",
       [id, session.id]

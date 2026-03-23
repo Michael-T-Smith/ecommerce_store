@@ -1,4 +1,3 @@
-
 "use client";
 
 import { canDo }  from "@/lib/permissions";
@@ -33,13 +32,13 @@ function StockBadge({ inStock, stockCount, threshold }) {
 
 export default function InventoryTable({
   items,
+  canEdit,
+  canDelete,
   onEdit,
   onDelete,
   onToggleStock,
   userRole,
 }) {
-  const canEdit   = canDo(userRole, "inventory", "update");
-  const canDelete = canDo(userRole, "inventory", "delete");
 
   if (items.length === 0) {
     return (
@@ -50,7 +49,6 @@ export default function InventoryTable({
       </div>
     );
   }
-
   return (
     <div className="bg-white border border-gray-200 overflow-hidden">
       {/* Responsive scroll wrapper */}
@@ -58,7 +56,7 @@ export default function InventoryTable({
         <table className="w-full min-w-[820px] border-collapse">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              {["Item", "SKU", "Category", "Price / Cost", "Stock Status", "Supplier", "Actions"].map((h) => (
+              {["Item", "SKU", "Category", "Location", "Price / Cost", "Stock", "Featured", "Supplier", "Actions"].map((h) => (
                 <th key={h} className="text-left px-4 py-3 font-sans font-extrabold text-[10px] tracking-[1.5px] uppercase text-brand-smoke whitespace-nowrap">
                   {h}
                 </th>
@@ -73,10 +71,17 @@ export default function InventoryTable({
                   i % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                 }`}
               >
-                {/* Item name + emoji */}
+                {/* Item name + photo thumbnail */}
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-[24px] leading-none flex-shrink-0">{item.emoji}</span>
+                    <div className="w-10 h-10 border border-brand-black/10 overflow-hidden flex-shrink-0 flex items-center justify-center bg-[#F0E8DE]">
+                      {item.images?.[0]?.path ? (
+                        <img src={item.images[0].path} alt={item.name}
+                          className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-[18px]">🌸</span>
+                      )}
+                    </div>
                     <div>
                       <div className="font-serif font-bold text-brand-black text-[14px] leading-tight">
                         {item.name}
@@ -107,11 +112,50 @@ export default function InventoryTable({
                   </span>
                 </td>
 
+                {/* Location */}
+                <td className="px-4 py-3">
+                  <span
+                    className="font-sans font-extrabold text-[9px] tracking-[1.5px] uppercase px-2 py-1 border"
+                    style={
+                      item.location === "centre"
+                        ? { color: "#3D2B1A", borderColor: "#3D2B1A40", background: "#3D2B1A12" }
+                        : { color: B.orange,  borderColor: `${B.orange}40`, background: `${B.orange}10` }
+                    }
+                  >
+                    {item.location === "centre" ? "Centre" : "Piedmont"}
+                  </span>
+                </td>
+
                 {/* Price / Cost */}
                 <td className="px-4 py-3">
                   <div>
-                    <div className="font-sans font-black text-[14px] text-brand-black">${item.price}</div>
-                    <div className="font-sans text-[11px] text-brand-smoke">cost ${item.costPrice}</div>
+                    {/* Show from–to range when sizes have different prices */}
+                    {(() => {
+                      const prices = item.prices ?? [];
+                      const sorted = [...prices].sort((a, b) => a - b);
+                      const lo = sorted[0] ?? 0;
+                      const hi = sorted[sorted.length - 1] ?? 0;
+                      return (
+                        <div className="font-sans font-black text-[14px] text-brand-black">
+                          {lo === hi ? `$${lo}` : `$${lo} – $${hi}`}
+                        </div>
+                      );
+                    })()}
+                    {(() => {
+                      const costs = item.costPrices ?? [];
+                      const lo = Math.min(...costs);
+                      const hi = Math.max(...costs);
+                      return (
+                        <div className="font-sans text-[11px] text-brand-smoke">
+                          cost {lo === hi ? `$${lo}` : `$${lo} – $${hi}`}
+                        </div>
+                      );
+                    })()}
+                    {item.sizes?.length > 1 && (
+                      <div className="font-sans text-[9px] text-brand-smoke/50 tracking-[0.5px] mt-0.5">
+                        {item.sizes.map((s, i) => `${s}: $${item.prices?.[i] ?? "?"}`).join(" · ")}
+                      </div>
+                    )}
                   </div>
                 </td>
 
@@ -126,7 +170,7 @@ export default function InventoryTable({
                     {/* Toggle — only if user can update */}
                     {canEdit && (
                       <button
-                        onClick={() => onToggleStock(item.id)}
+                        onClick={() => onToggleStock(item)}
                         className="font-sans text-[10px] text-brand-smoke underline cursor-pointer bg-transparent border-none hover:text-brand-orange transition-colors"
                       >
                         {item.inStock ? "Mark out" : "Mark in"}
@@ -136,6 +180,22 @@ export default function InventoryTable({
                 </td>
 
                 {/* Supplier */}
+                {/* Featured indicator */}
+                <td className="px-4 py-3 text-center">
+                  {item.isFeatured ? (
+                    <div className="flex flex-col items-center gap-1">
+                      <span title="Featured on homepage" className="text-[16px]">⭐</span>
+                      <div
+                        className="w-5 h-3 border border-brand-black/20 rounded-sm"
+                        style={{ background: item.featuredAccent ?? "#D4511A" }}
+                        title={`Accent: ${item.featuredAccent ?? "#D4511A"}`}
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-brand-smoke/30 text-[14px]">—</span>
+                  )}
+                </td>
+
                 <td className="px-4 py-3">
                   <span className="font-sans text-[12px] text-brand-smoke">{item.supplier}</span>
                 </td>

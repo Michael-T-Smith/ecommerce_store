@@ -129,7 +129,7 @@ export default function OrdersPage() {
                   <div className="font-sans text-[12px] text-brand-smoke">
                     {order.items?.length ?? 0} item{order.items?.length !== 1 ? "s" : ""}
                     {" · "}
-                    Delivery: {new Date(order.deliveryDate + "T00:00:00").toLocaleDateString("en-US", { dateStyle: "medium" })}
+                    Delivery: {new Date(order.deliveryDate).toLocaleDateString("en-US", { dateStyle: "medium" })}
                     {" · "}
                     <span className="capitalize">{order.deliveryZone}</span>
                   </div>

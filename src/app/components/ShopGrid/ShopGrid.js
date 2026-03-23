@@ -4,6 +4,7 @@ import { useState }       from "react";
 import Link               from "next/link";
 import { useCart }        from "@/app/CartContext";
 import ProductCardActions from "@/app/components/ProductCardActions/ProductCardActions";
+import Image from "next/image";
 
 export default function ShopGrid({ items }) {
   const { addItem, items: cartItems } = useCart();
@@ -60,13 +61,16 @@ export default function ShopGrid({ items }) {
                     rgba(0,0,0,0.03) 20px, rgba(0,0,0,0.03) 22px)`,
                 }}
               />
-              <span
-                className={`text-[72px] z-[1] leading-none transition-transform duration-200 group-hover:scale-110 ${
+              {item.images?.[0]?.path ? (
+                <Image src={item.images[0].path} alt={item.name} height={200} width={200}
+                  className={`transition-transform duration-200 group-hover:scale-105 ${
+                    !item.inStock ? "opacity-40 grayscale" : ""
+                  }`} />
+              ) : (
+                <span className={`text-[72px] z-[1] leading-none ${
                   !item.inStock ? "opacity-40 grayscale" : ""
-                }`}
-              >
-                {item.emoji}
-              </span>
+                }`}>🌸</span>
+              )}
 
               {/* In Bag badge */}
               {inCart && item.inStock && (
@@ -139,7 +143,7 @@ export default function ShopGrid({ items }) {
               {/* Price + actions */}
               <div className="flex justify-between items-center gap-2 flex-wrap">
                 <span className="font-sans font-black text-[20px] text-brand-orange">
-                  ${item.price}
+                  {item.prices?.length > 1 ? "from " : ""}${item.prices?.[0] ?? item.price ?? 0}
                 </span>
                 <div className="flex gap-2 items-center">
                   <Link

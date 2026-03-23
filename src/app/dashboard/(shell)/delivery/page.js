@@ -22,6 +22,10 @@ const STATUS_NEXT = {
   failed    : "scheduled",
 };
 
+const STATUS_PREV = {
+  dispatched: "scheduled",
+};
+
 const ZONE_META = {
   piedmont: { label: "Piedmont", color: "#D4511A" },
   anniston: { label: "Anniston", color: "#C9A84C" },
@@ -49,12 +53,14 @@ function remapDelivery(row) {
 export default function DeliveryPage() {
   const { user } = useDashboardSession();
 
-  const [deliveries, setDeliveries] = useState([]);
-  const [drivers,    setDrivers   ] = useState([]);
-  const [loading,    setLoading   ] = useState(true);
-  const [apiError,   setApiError  ] = useState(null);
+  const [deliveries,   setDeliveries  ] = useState([]);
+  const [drivers,      setDrivers     ] = useState([]);
+  const [loading,      setLoading     ] = useState(true);
+  const [apiError,     setApiError    ] = useState(null);
+  const [hideArchived, setHideArchived] = useState(true);
 
-  const canUpdate = canDo(user.role, "delivery", "update");
+  const canUpdate    = canDo(user.role, "delivery", "update");
+  const canBackpedal = user.role === "admin" || user.role === "manager";
 
   const load = useCallback(async () => {
     try {
@@ -94,6 +100,23 @@ export default function DeliveryPage() {
     }
   };
 
+  const handleBackpedal = async (deliveryId) => {
+    const delivery = deliveries.find((d) => d.id === deliveryId);
+    if (!delivery) return;
+    const prevStatus = STATUS_PREV[delivery.status];
+    if (!prevStatus) return;
+
+    setDeliveries((prev) =>
+      prev.map((d) => d.id === deliveryId ? { ...d, status: prevStatus } : d)
+    );
+    try {
+      await updateDelivery(deliveryId, { status: prevStatus });
+    } catch (err) {
+      load();
+      alert(`Status revert failed: ${err.message}`);
+    }
+  };
+
   const handleMarkFailed = async (deliveryId) => {
     setDeliveries((prev) =>
       prev.map((d) => d.id === deliveryId ? { ...d, status: "failed" } : d)
@@ -124,10 +147,17 @@ export default function DeliveryPage() {
   if (loading) return <PageSpinner label="Loading Deliveries" />;
   if (apiError) return <PageError message={apiError} onRetry={load} />;
 
-  const columns = DELIVERY_STATUSES.map((status) => ({
-    ...status,
-    items: deliveries.filter((d) => d.status === status.key),
-  }));
+  const ARCHIVED_STATUSES = ["delivered", "failed"];
+  const visibleDeliveries = hideArchived
+    ? deliveries.filter((d) => !ARCHIVED_STATUSES.includes(d.status))
+    : deliveries;
+
+  const columns = DELIVERY_STATUSES
+    .filter((status) => !hideArchived || !ARCHIVED_STATUSES.includes(status.key))
+    .map((status) => ({
+      ...status,
+      items: visibleDeliveries.filter((d) => d.status === status.key),
+    }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -136,8 +166,16 @@ export default function DeliveryPage() {
           Delivery Board
         </h1>
         <p className="font-sans text-brand-smoke text-[13px]">
-          {deliveries.length} total deliveries · advance status as drivers check in
+          {visibleDeliveries.length} {hideArchived ? "active" : "total"} deliveries · advance status as drivers check in
         </p>
+      </div>
+      <div>
+        <button onClick={() => setHideArchived((v) => !v)}
+          className={`font-sans font-extrabold text-[10px] tracking-[1px] uppercase px-4 py-2.5 border-2 cursor-pointer transition-colors whitespace-nowrap ${
+            hideArchived ? "border-gray-200 text-brand-smoke bg-white hover:border-gray-400" : "border-brand-black text-brand-black bg-white"
+          }`}>
+          {hideArchived ? "Show Archived" : "Hide Archived"}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -215,6 +253,12 @@ export default function DeliveryPage() {
 
                       {canUpdate && (nextMeta || delivery.status === "dispatched") && (
                         <div className="flex gap-2 pt-1 border-t border-gray-100">
+                          {canBackpedal && STATUS_PREV[delivery.status] && (
+                            <button onClick={() => handleBackpedal(delivery.id)}
+                              className="font-sans font-extrabold text-[9px] tracking-[1px] uppercase px-3 py-2 border-2 border-gray-300 text-brand-smoke bg-white cursor-pointer hover:bg-gray-100 transition-colors">
+                              ← Back
+                            </button>
+                          )}
                           {nextMeta && (
                             <button onClick={() => handleAdvance(delivery.id)}
                               className="flex-1 font-sans font-extrabold text-[9px] tracking-[1px] uppercase py-2 border-2 border-brand-black text-brand-cream cursor-pointer transition-all shadow-retro-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"

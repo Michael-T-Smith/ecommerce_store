@@ -12,7 +12,7 @@ export async function GET() {
     }
 
     const result = await pool.query(
-      `SELECT id, label, address_line, city, state, zip, zone, is_default, created_at
+      `SELECT id, label, address_line, city, state, zip, is_default, created_at
        FROM customer_addresses
        WHERE customer_id = $1
        ORDER BY is_default DESC, created_at ASC`,
@@ -51,10 +51,10 @@ export async function POST(request) {
 
       const result = await client.query(
         `INSERT INTO customer_addresses
-           (customer_id, label, address_line, city, state, zip, zone, is_default)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+           (customer_id, label, address_line, city, state, zip, is_default)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)
          RETURNING *`,
-        [session.id, label || "Home", addressLine, city, state || "AL", zip, zone || null, isDefault || false]
+        [session.id, label || "Home", addressLine, city, state || "AL", zip, isDefault || false]
       );
 
       await client.query("COMMIT");

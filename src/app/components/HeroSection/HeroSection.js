@@ -3,6 +3,7 @@
 
 import FlowerMark from "@/app/components/icons/FlowerMark";
 import { B }      from "@/lib/brand";
+import { redirect } from "next/navigation";
 
 export default function HeroSection({ theme }) {
   return (
@@ -43,12 +44,12 @@ export default function HeroSection({ theme }) {
 
         {/* CTAs — stack on mobile, row on sm+ */}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <button
+          <button onClick={() => redirect('/shop')}
             className="text-brand-cream border-[3px] border-brand-black px-7 sm:px-9 py-3.5 sm:py-4 font-sans font-black text-[12px] sm:text-[13px] tracking-[2px] uppercase cursor-pointer shadow-retro-md transition-all duration-100 hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-retro-sm text-center" style={{background: theme.panelBg}}
           >
             {theme.cta} →
           </button>
-          <button
+          <button onClick={() => redirect('/about')}
             className="bg-transparent text-brand-black border-[3px] border-brand-black px-7 sm:px-9 py-3.5 sm:py-4 font-sans font-black text-[12px] sm:text-[13px] tracking-[2px] uppercase cursor-pointer text-center"
           >
             Our Story

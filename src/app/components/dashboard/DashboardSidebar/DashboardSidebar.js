@@ -1,13 +1,12 @@
-
 "use client";
- 
+
 import Link              from "next/link";
 import { usePathname }   from "next/navigation";
 import FlowerMark        from "@/app/components/icons/FlowerMark";
 import { B }             from "@/lib/brand";
 import { useDashboardSession } from "@/app/dashboard/SessionContext";
 import { canDo }         from "@/lib/permissions";
- 
+
 const NAV_SECTIONS = [
   {
     group: "Overview",
@@ -16,6 +15,7 @@ const NAV_SECTIONS = [
         label   : "Dashboard",
         href    : "/dashboard",
         resource: null,
+        isActive: true,
         exact   : true,
         icon    : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -36,6 +36,7 @@ const NAV_SECTIONS = [
         label   : "Inventory",
         href    : "/dashboard/inventory",
         resource: "inventory",
+        isActive: true,
         icon    : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -47,6 +48,7 @@ const NAV_SECTIONS = [
         label   : "Orders",
         href    : "/dashboard/orders",
         resource: "orders",
+        isActive: true,
         icon    : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -57,9 +59,24 @@ const NAV_SECTIONS = [
         ),
       },
       {
+        label   : "Zones",
+        href    : "/dashboard/zones",
+        resource: "delivery",
+        isActive: false,
+        adminOnly: true,
+        icon    : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+            <circle cx="12" cy="9" r="2.5" />
+          </svg>
+        ),
+      },
+      {
         label   : "Delivery",
         href    : "/dashboard/delivery",
         resource: "delivery",
+        isActive: true,
         icon    : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -79,6 +96,8 @@ const NAV_SECTIONS = [
         label   : "Employees",
         href    : "/dashboard/employees",
         resource: "employees",
+        isActive: true,
+        adminOnly: true,
         icon    : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -98,6 +117,7 @@ const NAV_SECTIONS = [
         label   : "Analytics",
         href    : "/dashboard/analytics",
         resource: "reports",
+        isActive: true,
         icon    : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -110,19 +130,24 @@ const NAV_SECTIONS = [
     ],
   },
 ];
- 
-export default function DashboardSidebar() {
+
+export default function DashboardSidebar({ open = false, onClose }) {
   const pathname   = usePathname();
   const { user }   = useDashboardSession();
- 
+
   function isActive(href, exact) {
     return exact ? pathname === href : pathname.startsWith(href);
   }
- 
+
   return (
-    <aside className="hidden md:flex flex-col w-[240px] flex-shrink-0 bg-brand-bark border-r-[3px] border-brand-black overflow-y-auto">
- 
-      {/* Logo */}
+    <aside className={`
+      flex flex-col w-[240px] flex-shrink-0 bg-brand-bark border-r-[3px] border-brand-black overflow-y-auto
+      fixed inset-y-0 left-0 z-[50] transition-transform duration-200
+      md:relative md:translate-x-0 md:z-auto
+      ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+    `}>
+
+      {/* Logo + mobile close */}
       <div className="flex items-center gap-3 px-5 py-5 border-b-[2px] border-brand-cream/10">
         <div className="w-9 h-9 bg-brand-orange rounded-full border-2 border-brand-cream flex items-center justify-center flex-shrink-0">
           <FlowerMark size={20} fill={B.cream} stroke={B.black} />
@@ -135,16 +160,31 @@ export default function DashboardSidebar() {
             Dashboard
           </div>
         </div>
+        {/* Close button — mobile only */}
+        <button
+          onClick={onClose}
+          className="md:hidden ml-auto flex items-center justify-center w-8 h-8 text-brand-cream/60 hover:text-brand-cream transition-colors flex-shrink-0"
+          aria-label="Close menu"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       </div>
- 
+
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 flex flex-col gap-5">
         {NAV_SECTIONS.map((section) => {
           const visible = section.items.filter(
-            (item) => !item.resource || canDo(user.role, item.resource, "read")
+            (item) => {
+              if (item.adminOnly && user.role !== "admin" || !item.isActive) return false;
+              return !item.resource || canDo(user.role, item.resource, "read");
+            }
           );
           if (visible.length === 0) return null;
- 
+
           return (
             <div key={section.group}>
               <div className="font-sans font-extrabold text-[9px] tracking-[2px] uppercase text-brand-cream/30 px-3 mb-2">
@@ -157,6 +197,7 @@ export default function DashboardSidebar() {
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={onClose}
                       className={`flex items-center gap-3 px-3 py-2.5 font-sans font-extrabold text-[12px] tracking-[0.3px] no-underline transition-colors ${
                         active
                           ? "bg-brand-orange text-brand-cream"
@@ -175,7 +216,7 @@ export default function DashboardSidebar() {
           );
         })}
       </nav>
- 
+
       {/* Bottom: user info */}
       <div className="border-t-[2px] border-brand-cream/10 px-4 py-4">
         <div className="font-sans font-extrabold text-[12px] text-brand-cream leading-tight truncate">

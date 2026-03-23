@@ -1,3 +1,10 @@
+// src/app/bag/page.js
+//
+// Full bag/cart review page at /bag.
+// Shows all cart items with qty controls and remove.
+// Calculates subtotal — delivery fee shown at checkout.
+// Empty state has a CTA back to the shop.
+
 "use client";
 
 import { useState }   from "react";
@@ -168,7 +175,7 @@ export default function BagPage() {
                             #F0E8DE`,
                         }}
                       >
-                        {item.emoji}
+                        {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" /> : "🌸"}
                       </div>
                       <div>
                         <div className="font-serif font-bold text-brand-black text-[16px] leading-tight mb-1">
