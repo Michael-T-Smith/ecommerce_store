@@ -62,22 +62,24 @@ export default function DeliveryPage() {
   const canUpdate    = canDo(user.role, "delivery", "update");
   const canBackpedal = user.role === "admin" || user.role === "manager";
 
+  const canReadEmployees = canDo(user.role, "employees", "read");
+
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setApiError(null);
-      const [delRes, empRes] = await Promise.all([
-        fetchDeliveries(),
-        fetchEmployees({ status: "active" }),
-      ]);
+      const delRes = await fetchDeliveries();
       setDeliveries(delRes.data.map(remapDelivery));
-      setDrivers(empRes.data);
+      if (canReadEmployees) {
+        const empRes = await fetchEmployees({ status: "active" });
+        setDrivers(empRes.data);
+      }
     } catch (err) {
       setApiError(err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [canReadEmployees]);
 
   useEffect(() => { load(); }, [load]);
 
