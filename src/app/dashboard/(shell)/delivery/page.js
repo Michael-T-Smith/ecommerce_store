@@ -62,7 +62,7 @@ export default function DeliveryPage() {
   const canUpdate    = canDo(user.role, "delivery", "update");
   const canBackpedal = user.role === "admin" || user.role === "manager";
 
-  const canReadEmployees = canDo(user.role, "employees", "read");
+  const canReadEmployees = user.role === "admin" || user.role === "manager";
 
   const load = useCallback(async () => {
     try {

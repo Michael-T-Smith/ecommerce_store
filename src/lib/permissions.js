@@ -40,7 +40,7 @@ const PERMISSIONS = {
   },
   employees: {
     create : [ROLES.ADMIN],
-    read   : [ROLES.ADMIN],
+    read   : [ROLES.ADMIN, ROLES.MANAGER],
     update : [ROLES.ADMIN],
     delete : [ROLES.ADMIN],
   },
