@@ -102,7 +102,7 @@ ON CONFLICT (sku) DO NOTHING;
 
 INSERT INTO employees (name, email, phone, role, status, hire_date)
 VALUES
-  ('Cecelia Lamb', 'cecelia@lambsflorist.com', '(256) 555-0101', 'admin',    'active', '2010-03-01'),
+  ('Cecilia Lamb', 'cecilia@lambsflorist.com', '(256) 555-0101', 'admin',    'active', '2010-03-01'),
   ('Frank Lamb',   'frank@lambsflorist.com',   '(256) 555-0102', 'manager',  'active', '2010-03-01'),
   ('Jane Holloway', 'jane@lambsflorist.com',     '(256) 555-0103', 'employee', 'active', '2022-06-15')
 ON CONFLICT (email) DO NOTHING;

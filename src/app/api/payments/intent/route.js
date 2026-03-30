@@ -36,7 +36,7 @@ export async function POST(request) {
       },
     };
 
-    // Connect mode: route money to Cecelia's account, withhold platform fee
+    // Connect mode: route money to Cecilia's account, withhold platform fee
     if (connectedAccount) {
       intentParams.application_fee_amount = Math.round(amount * 0.03 * 100);
       intentParams.on_behalf_of           = connectedAccount;

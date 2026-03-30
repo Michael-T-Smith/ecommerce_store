@@ -9,7 +9,7 @@
 import { ROLES } from "@/lib/permissions";
 
 export const MOCK_USERS = [
-  { id: 1, name: "Cecelia Lamb", role: ROLES.ADMIN,    email: "cecelia@lambsflorist.com" },
+  { id: 1, name: "Cecilia Lamb", role: ROLES.ADMIN,    email: "cecilia@lambsflorist.com" },
   { id: 2, name: "Frank Lamb",   role: ROLES.MANAGER,  email: "frank@lambsflorist.com"   },
   { id: 3, name: "Jane Employee", role: ROLES.EMPLOYEE, email: "jane@lambsflorist.com"     },
 ];

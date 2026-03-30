@@ -46,7 +46,7 @@ const STORE = {
   name   : "Lamb's Florist",
   address: "204 Main St",
   city   : "Piedmont, AL 36272",
-  phone  : "(256) 447-6331",
+  phone  : "(256) 447-4800",
   hours  : "Mon–Fri 8am–6pm · Sat 8am–5pm · Closed Sunday",
 };
 
@@ -112,7 +112,7 @@ function StripePaymentForm({ orderTotal, onSuccess, onBack, orderData, disabled 
 
         onSuccess(data.data);
       } catch {
-        setError("Payment succeeded but we couldn't reach our server. Please call (256) 447-6331.");
+        setError("Payment succeeded but we couldn't reach our server. Please call (256) 447-4800.");
         setPaying(false);
       }
     } else {
@@ -849,7 +849,7 @@ export default function CheckoutPageClient() {
               {[
                 { icon: "🔒", text: "Payments secured by Stripe" },
                 { icon: "🌸", text: "Cut fresh daily in Piedmont, AL" },
-                { icon: "📞", text: "Questions? Call (256) 447-6331" },
+                { icon: "📞", text: "Questions? Call (256) 447-4800" },
               ].map((b) => (
                 <div key={b.text} className="flex items-center gap-2 font-sans text-[11px] text-brand-smoke">
                   <span>{b.icon}</span>

@@ -28,7 +28,7 @@ export default function AboutStory() {
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10">
               <FlowerMark size={64} fill={B.cream} stroke={B.cream} />
               <span className="font-sans font-extrabold text-[10px] tracking-[4px] uppercase text-brand-cream/60">
-                Photo of Cecelia &amp; Frank
+                Photo of Cecilia &amp; Frank
               </span>
             </div>
             {/* Gold pinstripe ring overlay */}
@@ -74,7 +74,7 @@ export default function AboutStory() {
           <div className="flex flex-col gap-5 font-sans text-[14px] sm:text-[15px] text-brand-smoke leading-[1.8]">
             <p>
               Lamb&apos;s Florist started the way most good things do — with a person
-              who simply loved what they did. Cecelia Lamb has spent decades
+              who simply loved what they did. Cecilia Lamb has spent decades
               learning the language of flowers: which blooms hold up in Alabama
               heat, which combinations catch the eye, which arrangements make
               people stop and stare.
@@ -99,7 +99,7 @@ export default function AboutStory() {
             </div>
             <div>
               <div className="font-serif font-black text-brand-black text-[16px] tracking-[-0.5px]">
-                Cecelia &amp; Frank Lamb
+                Cecilia &amp; Frank Lamb
               </div>
               <div className="font-sans text-[11px] font-extrabold tracking-[2px] uppercase text-brand-smoke">
                 Owners, Lamb&apos;s Florist

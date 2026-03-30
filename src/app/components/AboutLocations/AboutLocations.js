@@ -9,7 +9,7 @@ const LOCATIONS = [
     name     : "Piedmont Location",
     address  : "123 Main Street",
     city     : "Piedmont, AL 36272",
-    phone    : "(256) 555-0101",
+    phone    : "(256) 447-4800",
     email    : "hello@lambsflorist.com",
     hours    : [
       { day: "Mon – Fri", time: "8:00 AM – 5:30 PM" },
@@ -26,7 +26,7 @@ const LOCATIONS = [
     name     : "Anniston & Centre Area",
     address  : "Deliveries dispatched from Piedmont",
     city     : "Anniston & Centre, AL",
-    phone    : "(256) 555-0102",
+    phone    : "(256) 484-0819",
     email    : "hello@lambsflorist.com",
     hours    : [
       { day: "Mon – Fri", time: "Delivery by 5:00 PM" },

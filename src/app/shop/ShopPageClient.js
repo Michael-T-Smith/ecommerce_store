@@ -85,7 +85,7 @@ function ShopInner({ initialItems, categories, dbError }) {
             href="tel:+12564476331"
             className="font-sans font-extrabold text-brand-orange text-[14px] no-underline hover:underline"
           >
-            (256) 447-6331
+            (256) 447-4800
           </a>
         </div>
       ) : (

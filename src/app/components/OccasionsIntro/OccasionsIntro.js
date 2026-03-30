@@ -19,7 +19,7 @@ export default function OccasionsIntro() {
 
         <p className="font-sans text-brand-smoke text-[14px] sm:text-[15px] leading-[1.8] max-w-[560px]">
           Pick the occasion below and we'll show you exactly what works —
-          curated from our studio by Cecelia & Frank, not an algorithm.
+          curated from our studio by Cecilia & Frank, not an algorithm.
           Each recommendation is handpicked for the emotion behind it.
         </p>
       </div>

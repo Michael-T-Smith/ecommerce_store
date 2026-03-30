@@ -5,7 +5,7 @@
 //   node scripts/seed-admin.js
 //     → prompts for name, email, password → inserts as admin
 //
-//   node scripts/seed-admin.js --reset cecelia@lambsflorist.com
+//   node scripts/seed-admin.js --reset cecilia@lambsflorist.com
 //     → prompts for new password → updates hash for that employee
 
 import bcrypt   from "bcryptjs";

@@ -316,7 +316,7 @@ export default function BagPage() {
 
                   {/* Trust note */}
                   <p className="font-sans text-[10px] text-brand-smoke/60 text-center mt-4 leading-relaxed">
-                    Hand-delivered by Cecelia &amp; Frank&apos;s team. Mon–Sat delivery only.
+                    Hand-delivered by Cecilia &amp; Frank&apos;s team. Mon–Sat delivery only.
                   </p>
                 </div>
               </div>

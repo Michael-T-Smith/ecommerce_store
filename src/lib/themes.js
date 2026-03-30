@@ -4,7 +4,7 @@ export const HERO_THEMES = {
     badge       : "Fresh Daily · Local · Handcrafted",
     headline    : ["Flowers", "That Feel", "Like Home."],
     accentLine  : 1,
-    sub         : "Handcrafted arrangements by Cecelia & Frank — cut fresh daily from our Piedmont studio and delivered across the Anniston area.",
+    sub         : "Handcrafted arrangements by Cecilia & Frank — cut fresh daily from our Piedmont studio and delivered across the Anniston area.",
     cta         : "Shop Arrangements",
     panelBg     : "#D4511A",
     panelEmoji  : "💐",

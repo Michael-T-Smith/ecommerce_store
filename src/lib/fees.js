@@ -13,7 +13,7 @@
 //   Stripe routes the full charge through your platform account.
 //   application_fee_amount ($2.18) is withheld by your platform account → yours.
 //   Stripe deducts their fee ($2.41) from the merchant's share.
-//   Cecelia's connected account receives ~$68.00.
+//   Cecilia's connected account receives ~$68.00.
 //
 // ── Fee breakdown ────────────────────────────────────────────────────────────
 //   STRIPE_PCT    2.9%   Stripe's per-transaction percentage
@@ -23,17 +23,17 @@
 // ── Gross-up formula ─────────────────────────────────────────────────────────
 //   chargeTotal = ceil((orderTotal + STRIPE_FIXED) / (1 - TOTAL_PCT))
 //
-// This ensures Cecelia nets *exactly* orderTotal after all deductions.
+// This ensures Cecilia nets *exactly* orderTotal after all deductions.
 // The customer pays the difference as a visible "Processing fee" line.
 //
 // ── Going live ───────────────────────────────────────────────────────────────
 // 1. Create your Stripe platform account at dashboard.stripe.com
 // 2. Enable Connect → Express in your Stripe dashboard
-// 3. Cecelia onboards via your Connect link — she gets a connected account ID
+// 3. Cecilia onboards via your Connect link — she gets a connected account ID
 // 4. Set in .env.local:
 //      STRIPE_SECRET_KEY=sk_live_...          ← your platform secret key
 //      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...  ← your platform publishable key
-//      STRIPE_CONNECTED_ACCOUNT_ID=acct_...   ← Cecelia's connected account ID
+//      STRIPE_CONNECTED_ACCOUNT_ID=acct_...   ← Cecilia's connected account ID
 // 5. Swap sk_test/pk_test → sk_live/pk_live when ready to take real payments
 
 // Flat delivery fee — applied to all delivery orders regardless of location.

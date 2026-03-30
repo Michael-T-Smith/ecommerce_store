@@ -30,7 +30,7 @@ export default function EmployeesPage() {
         <div className="text-[60px] mb-5">🔒</div>
         <h2 className="font-serif font-black text-brand-black text-[26px] tracking-[-1px] mb-2">Access Denied</h2>
         <p className="font-sans text-brand-smoke text-[14px] max-w-[320px] leading-relaxed">
-          Employee management is restricted to Admin accounts. Contact Cecelia if you need access.
+          Employee management is restricted to Admin accounts. Contact Cecilia if you need access.
         </p>
       </div>
     );

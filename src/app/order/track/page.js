@@ -194,7 +194,7 @@ function OrderResult({ order }) {
         <p className="font-sans text-[12px] text-brand-smoke/70 text-center border-t border-gray-100 pt-4">
           Questions about your order?{" "}
           <a href="tel:+12564476331" className="text-brand-orange font-extrabold no-underline hover:underline">
-            Call (256) 447-6331
+            Call (256) 447-4800
           </a>
         </p>
       </div>

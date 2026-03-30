@@ -87,7 +87,7 @@ export default function OccasionsPage() {
             Still not sure?
           </h3>
           <p className="font-sans text-brand-smoke text-[13px] sm:text-[14px] leading-relaxed max-w-[400px]">
-            Browse everything in the shop or call us — Cecelia and Frank are
+            Browse everything in the shop or call us — Cecilia and Frank are
             happy to help you find the right arrangement.
           </p>
         </div>

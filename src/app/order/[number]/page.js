@@ -36,7 +36,7 @@ function MinimalConfirmation({ orderNumber }) {
       <p className="font-sans text-brand-smoke text-[13px] leading-relaxed mb-10">
         You&apos;ll receive a confirmation email shortly. If you have any questions, call us at{" "}
         <a href="tel:+12565551234" className="text-brand-orange font-extrabold no-underline hover:underline">
-          (256) 555-1234
+          (256) 447-4800
         </a>.
       </p>
       <Link
@@ -307,7 +307,7 @@ export default function OrderConfirmationPage() {
                   {
                     emoji: "📞",
                     title: "We'll confirm",
-                    body : "Cecelia or Frank will call to confirm your order and arrange payment.",
+                    body : "Cecilia or Frank will call to confirm your order and arrange payment.",
                   },
                   {
                     emoji: "✂️",

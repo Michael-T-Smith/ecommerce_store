@@ -11,7 +11,7 @@ const VALUES = [
   {
     number  : "02",
     headline: "Made by Hand. Always.",
-    body    : "No assembly line. No template. Cecelia designs every arrangement herself, which means what you receive is a genuine creative decision — not a product number.",
+    body    : "No assembly line. No template. Cecilia designs every arrangement herself, which means what you receive is a genuine creative decision — not a product number.",
     accent  : B.gold,
   },
   {

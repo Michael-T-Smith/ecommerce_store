@@ -1,7 +1,7 @@
 // src/app/dashboard/(shell)/zones/page.js
 //
 // Delivery zones management — admin only.
-// Cecelia can add, rename, reprice, reorder, and toggle zones.
+// Cecilia can add, rename, reprice, reorder, and toggle zones.
 // Changes are live immediately — checkout fetches zones from the API.
 
 "use client";

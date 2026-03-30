@@ -3,8 +3,8 @@ export const EMPLOYEE_ROLES = ["admin", "manager", "employee"];
 
 export const EMPLOYEES_MOCK = [
   {
-    id: 1, name: "Cecelia Lamb",
-    email: "cecelia@lambsflorist.com", phone: "(256) 555-0101",
+    id: 1, name: "Cecilia Lamb",
+    email: "cecilia@lambsflorist.com", phone: "(256) 555-0101",
     role: "admin", status: "active",
     hireDate: "2010-03-01", createdAt: "2010-03-01",
   },

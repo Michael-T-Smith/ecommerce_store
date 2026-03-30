@@ -124,7 +124,7 @@ function StripePaymentForm({ total, orderData, onSuccess, onBack }) {
         if (!res.ok) {
           setError(
             data.error ??
-            "Payment went through but we couldn't save your order. Please call (256) 447-6331."
+            "Payment went through but we couldn't save your order. Please call (256) 447-4800."
           );
           setPaying(false);
           return;
@@ -146,7 +146,7 @@ function StripePaymentForm({ total, orderData, onSuccess, onBack }) {
       setError(
         err?.message
           ? `Payment error: ${err.message}`
-          : "An unexpected error occurred. Please try again or call (256) 447-6331."
+          : "An unexpected error occurred. Please try again or call (256) 447-4800."
       );
       setPaying(false);
     }
@@ -407,8 +407,8 @@ export default function CheckoutPage() {
 
   // ── Order data passed to POST /api/orders after Stripe confirms ───────────
   const STORE_INFO = {
-    piedmont: { address: "211 Memorial Dr, Piedmont, AL 36272",         phone: "(256) 447-6331" },
-    centre  : { address: "1470 W Main St, Ste H, Centre, AL 35960",     phone: "(256) 447-6331" },
+    piedmont: { address: "211 Memorial Dr, Piedmont, AL 36272",         phone: "(256) 447-4800" },
+    centre  : { address: "1470 W Main St, Ste H, Centre, AL 35960",     phone: "(256) 484-0819" },
   };
 
   const orderData = useMemo(() => {

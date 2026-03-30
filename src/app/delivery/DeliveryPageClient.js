@@ -36,11 +36,11 @@ export default function DeliveryPageClient() {
       {/* Delivery range notice */}
       <div className="bg-brand-cream border-t border-brand-black/10 px-5 sm:px-10 lg:px-16 py-10 text-center">
         <p className="font-sans text-brand-smoke text-[13px] leading-relaxed max-w-[600px] mx-auto">
-          <span className="font-extrabold text-brand-black">We deliver within a 100-mile radius of Piedmont.</span>{" "}
+          <span className="font-extrabold text-brand-black">We deliver within a 50-mile radius of Piedmont.</span>{" "}
           Orders outside our standard zones are welcome at a variable rate based on distance.
-          For destinations beyond 100 miles, please call us at{" "}
-          <a href="tel:+12564476331" className="text-brand-orange font-extrabold no-underline hover:underline">
-            (256) 447-6331
+          For destinations beyond 50 miles, please call us at{" "}
+          <a href="tel:+12564474800" className="text-brand-orange font-extrabold no-underline hover:underline">
+            (256) 447-4800
           </a>{" "}
           before placing your order.
         </p>
