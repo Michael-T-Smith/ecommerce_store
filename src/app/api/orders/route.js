@@ -43,8 +43,9 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  // Public endpoint — no auth required. Called by checkout after payment.
+  // Public endpoint for checkout; also accepts authenticated staff orders (no Stripe ID required).
   try {
+    const user = await getServerUser();
     const body = await request.json();
     const {
       customerName, customerEmail, customerPhone,
@@ -67,7 +68,7 @@ export async function POST(request) {
       return badRequest("Invalid email address.");
     if (!items?.length)
       return badRequest("Order must contain at least one item.");
-    if (!stripePaymentId)
+    if (!stripePaymentId && !user)
       return badRequest("stripePaymentId is required — payment must complete before order creation.");
 
     const type = fulfillmentType === "pickup" ? "pickup" : "delivery";
@@ -137,7 +138,7 @@ export async function POST(request) {
           type === "pickup"   ? resolvedPickupLocation : null,
           noteMessage?.trim() || null,
           customerId          || null,
-          stripePaymentId,
+          stripePaymentId || "MANUAL",
           "confirmed", // payment already completed — skip 'pending'
         ]
       );

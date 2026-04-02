@@ -5,7 +5,8 @@ import { useDashboardSession }  from "@/app/dashboard/SessionContext";
 import { canDo }                from "@/lib/permissions";
 import StatusBadge              from "@/app/components/dashboard/StatusBadge/StatusBadge";
 import OrderModal               from "@/app/components/dashboard/OrderModal/OrderModal";
-import { fetchOrders, updateOrder } from "@/lib/dashboardApi";
+import { fetchOrders, updateOrder, createOrder } from "@/lib/dashboardApi";
+import CreateOrderModal from "@/app/components/dashboard/CreateOrderModal/CreateOrderModal";
 import { ORDER_STATUSES, STATUS_NEXT, STATUS_PREV } from "@/lib/ordersData";
 import { B }                    from "@/lib/brand";
 import { PageSpinner, PageError } from "../employees/page";
@@ -53,6 +54,7 @@ function remapOrder(row) {
     pickupTime      : row.pickup_time,
     pickupLocation  : row.pickup_location,
     noteMessage     : row.note_message,
+    fulfillmentType : row.fulfillment_type,
     staffNotes      : row.staff_notes,
     stripePaymentId : row.stripe_payment_id,
     createdAt       : row.created_at,
@@ -71,7 +73,9 @@ export default function OrdersPage() {
   const [sortCol,      setSortCol     ] = useState("deliveryDate");
   const [sortDir,      setSortDir     ] = useState("asc");
   const [hideArchived, setHideArchived] = useState(true);
+  const [showCreate,   setShowCreate  ] = useState(false);
 
+  const canCreate    = canDo(user.role, "orders", "create");
   const canUpdate    = canDo(user.role, "orders", "update");
   const canBackpedal = user.role === "admin" || user.role === "manager";
 
@@ -137,6 +141,11 @@ export default function OrdersPage() {
     setSelected(updatedOrder);
   };
 
+  const handleCreated = (newOrder) => {
+    setOrders((prev) => [remapOrder(newOrder), ...prev]);
+    setShowCreate(false);
+  };
+
   const handleSort = (key) => {
     if (!key) return;
     setSortDir((prev) => sortCol === key ? (prev === "asc" ? "desc" : "asc") : "asc");
@@ -185,13 +194,26 @@ export default function OrdersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-serif font-black text-brand-black text-[26px] sm:text-[30px] tracking-[-1px] leading-none mb-1">
-          Orders
-        </h1>
-        <p className="font-sans text-brand-smoke text-[13px]">
-          {filtered.length} {hideArchived ? "active" : "total"} orders · click any row to view details
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="font-serif font-black text-brand-black text-[26px] sm:text-[30px] tracking-[-1px] leading-none mb-1">
+            Orders
+          </h1>
+          <p className="font-sans text-brand-smoke text-[13px]">
+            {filtered.length} {hideArchived ? "active" : "total"} orders · click any row to view details
+          </p>
+        </div>
+        {canCreate && (
+          <button
+            onClick={() => setShowCreate(true)}
+            className="font-sans font-extrabold text-[11px] tracking-[1.5px] uppercase px-5 py-3 bg-brand-black text-brand-cream border-[3px] border-brand-black cursor-pointer shadow-retro-sm hover:bg-brand-orange hover:border-brand-orange transition-colors flex items-center gap-2 self-start sm:self-auto"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Add Order
+          </button>
+        )}
       </div>
 
       {/* Status tabs */}
@@ -336,6 +358,13 @@ export default function OrdersPage() {
           </table>
         </div>
       </div>
+
+      {showCreate && (
+        <CreateOrderModal
+          onCreated={handleCreated}
+          onClose={() => setShowCreate(false)}
+        />
+      )}
 
       {selected && (
         <OrderModal

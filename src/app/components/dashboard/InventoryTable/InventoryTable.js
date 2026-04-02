@@ -35,7 +35,7 @@ const COLS = [
   { label: "SKU",          key: "sku"        },
   { label: "Category",     key: "category"   },
   { label: "Location",     key: "location"   },
-  { label: "Price / Cost", key: "prices"     },
+  { label: "Price / Cost", key: "minPrice"   },
   { label: "Stock",        key: "stockCount" },
   { label: "Featured",     key: "isFeatured" },
   { label: "Supplier",     key: "supplier"   },
@@ -203,7 +203,6 @@ export default function InventoryTable({
                   </div>
                 </td>
 
-                {/* Supplier */}
                 {/* Featured indicator */}
                 <td className="px-4 py-3 text-center">
                   {item.isFeatured ? (

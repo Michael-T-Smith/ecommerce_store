@@ -30,6 +30,7 @@ function remapItem(row) {
     name              : row.name,
     description       : row.description,
     prices            : Array.isArray(row.prices) ? row.prices.map(Number) : [0],
+    minPrice          : Array.isArray(row.prices) ? Math.min(...row.prices.map(Number)) : 0,
     costPrices        : Array.isArray(row.cost_prices) ? row.cost_prices.map(Number) : [0],
     category          : row.category,
     tag               : row.tag,
@@ -107,7 +108,7 @@ export default function InventoryPage() {
           case "sku":        av = a.sku         ?? ""; bv = b.sku         ?? ""; break;
           case "category":   av = a.category   ?? ""; bv = b.category   ?? ""; break;
           case "location":   av = a.location   ?? ""; bv = b.location   ?? ""; break;
-          case "prices":     av = a.prices?.[0] ?? 0;  bv = b.prices?.[0] ?? 0;  break;
+          case "minPrice":   av = a.minPrice    ?? 0;  bv = b.minPrice    ?? 0;  break;
           case "stockCount": av = a.stockCount  ?? 0;  bv = b.stockCount  ?? 0;  break;
           case "isFeatured": av = a.isFeatured ? 1 : 0; bv = b.isFeatured ? 1 : 0; break;
           case "supplier":   av = a.supplier   ?? ""; bv = b.supplier   ?? ""; break;
