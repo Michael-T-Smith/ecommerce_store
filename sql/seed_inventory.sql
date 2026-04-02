@@ -1,6 +1,3 @@
-
-
-
 -- ─────────────────────────────────────────────────────────────────────────────
 --  SEED: inventory
 --  Matches INVENTORY_MOCK in src/lib/inventoryData.js exactly.
@@ -92,17 +89,3 @@ VALUES
    ARRAY['Standard'], 'In-house', 2, 3, true)
 
 ON CONFLICT (sku) DO NOTHING;
-
-
--- ─────────────────────────────────────────────────────────────────────────────
---  SEED: employees
---  Passwords are NULL here — run scripts/seed-dev.js after container starts
---  to populate password_hash for all three accounts.
--- ─────────────────────────────────────────────────────────────────────────────
-
-INSERT INTO employees (name, email, phone, role, status, hire_date)
-VALUES
-  ('Cecilia Lamb', 'cecilia@lambsflorist.com', '(256) 555-0101', 'admin',    'active', '2010-03-01'),
-  ('Frank Lamb',   'frank@lambsflorist.com',   '(256) 555-0102', 'manager',  'active', '2010-03-01'),
-  ('Jane Holloway', 'jane@lambsflorist.com',     '(256) 555-0103', 'employee', 'active', '2022-06-15')
-ON CONFLICT (email) DO NOTHING;

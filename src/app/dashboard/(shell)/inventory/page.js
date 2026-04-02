@@ -56,6 +56,8 @@ export default function InventoryPage() {
   const [filterCat,     setFilterCat    ] = useState("All");
   const [filterStock,   setFilterStock  ] = useState("all");
   const [filterLocation,setFilterLocation] = useState("all");
+  const [sortKey,       setSortKey      ] = useState(null);
+  const [sortDir,       setSortDir      ] = useState("asc");
   const [modalMode,     setModalMode    ] = useState(null);
   const [editItem,      setEditItem     ] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -97,8 +99,28 @@ export default function InventoryPage() {
         (i.supplier ?? "").toLowerCase().includes(q)
       );
     }
+    if (sortKey) {
+      result.sort((a, b) => {
+        let av, bv;
+        switch (sortKey) {
+          case "name":       av = a.name       ?? ""; bv = b.name       ?? ""; break;
+          case "sku":        av = a.sku         ?? ""; bv = b.sku         ?? ""; break;
+          case "category":   av = a.category   ?? ""; bv = b.category   ?? ""; break;
+          case "location":   av = a.location   ?? ""; bv = b.location   ?? ""; break;
+          case "prices":     av = a.prices?.[0] ?? 0;  bv = b.prices?.[0] ?? 0;  break;
+          case "stockCount": av = a.stockCount  ?? 0;  bv = b.stockCount  ?? 0;  break;
+          case "isFeatured": av = a.isFeatured ? 1 : 0; bv = b.isFeatured ? 1 : 0; break;
+          case "supplier":   av = a.supplier   ?? ""; bv = b.supplier   ?? ""; break;
+          default: return 0;
+        }
+        const cmp = typeof av === "string"
+          ? av.localeCompare(bv, undefined, { numeric: true, sensitivity: "base" })
+          : av - bv;
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+    }
     return result;
-  }, [items, filterStock, search]);
+  }, [items, filterStock, search, sortKey, sortDir]);
 
   const handleSave = async (formData) => {
     try {
@@ -131,6 +153,15 @@ export default function InventoryPage() {
       setConfirmDelete(null);
     }
   };
+
+  const handleSort = useCallback((key) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }, [sortKey]);
 
   const handleToggleStock = async (item) => {
     console.log('dashboard/shell/inventory/page.js', item);
@@ -258,6 +289,9 @@ export default function InventoryPage() {
         onEdit={canEdit ? handleEdit : null}
         onDelete={canDelete ? handleDelete : null}
         onToggleStock={canEdit ? handleToggleStock : null}
+        sortKey={sortKey}
+        sortDir={sortDir}
+        onSort={handleSort}
       />
 
       {/* Delete confirmation */}

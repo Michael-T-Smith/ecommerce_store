@@ -372,15 +372,3 @@ VALUES
    ARRAY['Standard'], 'In-house', 2, 3, true)
 
 ON CONFLICT (sku) DO NOTHING;
-
-
--- ── SEED: employees ──────────────────────────────────────────────────────────
--- Passwords are NULL — run scripts/seed-dev.js after container starts.
--- Default creds after seed: cecilia@lambsflorist.com / admin1234
---                            frank@lambsflorist.com  / manager1234
-INSERT INTO employees (name, email, phone, role, status, hire_date)
-VALUES
-  ('Cecilia Lamb', 'cecilia@lambsflorist.com', '(256) 555-0101', 'admin',    'active', '2010-03-01'),
-  ('Frank Lamb',   'frank@lambsflorist.com',   '(256) 555-0102', 'manager',  'active', '2010-03-01'),
-  ('Jane Holloway', 'jane@lambsflorist.com',     '(256) 555-0103', 'employee', 'active', '2022-06-15')
-ON CONFLICT (email) DO NOTHING;

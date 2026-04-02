@@ -30,6 +30,18 @@ function StockBadge({ inStock, stockCount, threshold }) {
   );
 }
 
+const COLS = [
+  { label: "Item",         key: "name"       },
+  { label: "SKU",          key: "sku"        },
+  { label: "Category",     key: "category"   },
+  { label: "Location",     key: "location"   },
+  { label: "Price / Cost", key: "prices"     },
+  { label: "Stock",        key: "stockCount" },
+  { label: "Featured",     key: "isFeatured" },
+  { label: "Supplier",     key: "supplier"   },
+  { label: "Actions",      key: null         },
+];
+
 export default function InventoryTable({
   items,
   canEdit,
@@ -38,6 +50,9 @@ export default function InventoryTable({
   onDelete,
   onToggleStock,
   userRole,
+  sortKey,
+  sortDir,
+  onSort,
 }) {
 
   if (items.length === 0) {
@@ -56,9 +71,18 @@ export default function InventoryTable({
         <table className="w-full min-w-[820px] border-collapse">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              {["Item", "SKU", "Category", "Location", "Price / Cost", "Stock", "Featured", "Supplier", "Actions"].map((h) => (
-                <th key={h} className="text-left px-4 py-3 font-sans font-extrabold text-[10px] tracking-[1.5px] uppercase text-brand-smoke whitespace-nowrap">
-                  {h}
+              {COLS.map(({ label, key }) => (
+                <th
+                  key={label}
+                  onClick={key ? () => onSort(key) : undefined}
+                  className={`text-left px-4 py-3 font-sans font-extrabold text-[10px] tracking-[1.5px] uppercase whitespace-nowrap transition-colors
+                    ${key ? "cursor-pointer select-none hover:text-brand-black" : ""}
+                    ${sortKey === key ? "text-brand-black" : "text-brand-smoke"}`}
+                >
+                  {label}
+                  {key && sortKey === key && (
+                    <span className="ml-1 opacity-60">{sortDir === "asc" ? "▲" : "▼"}</span>
+                  )}
                 </th>
               ))}
             </tr>
