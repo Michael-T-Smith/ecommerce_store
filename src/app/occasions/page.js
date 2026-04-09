@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams }     from "next/navigation";
 import AnnouncementBar    from "@/app/components/AnnouncementBar/AnnouncementBar";
 import Navbar             from "@/app/components/Navbar/Navbar";
@@ -20,7 +20,7 @@ function resolveProducts(productIds) {
     .filter(Boolean);
 }
 
-export default function OccasionsPage() {
+function OccasionsContent() {
   const [cartCount,  setCartCount ] = useState(0);
   const [openCardId, setOpenCardId] = useState(null);
   const searchParams = useSearchParams();
@@ -110,5 +110,13 @@ export default function OccasionsPage() {
       <PromoBand />
       <Footer />
     </div>
+  );
+}
+
+export default function OccasionsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-brand-cream" />}>
+      <OccasionsContent />
+    </Suspense>
   );
 }

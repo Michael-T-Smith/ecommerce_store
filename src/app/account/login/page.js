@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect }        from "react";
-import { useSearchParams } from "next/navigation";
-import Link                           from "next/link";
-import { B }                          from "@/lib/brand";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams }               from "next/navigation";
+import Link                              from "next/link";
+import { B }                             from "@/lib/brand";
 
-export default function AccountLoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams();
   const redirect     = searchParams.get("redirect") || "/account/orders";
   const reason       = searchParams.get("reason");
@@ -271,5 +271,21 @@ const handleRegister = async () => {
         </div>
       </div>
     </div>
+  );
+}
+
+const Spinner = () => (
+  <div className="min-h-screen flex items-center justify-center" style={{ background: B.cream }}>
+    <svg className="animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={B.orange} strokeWidth="2.5">
+      <path d="M21 12a9 9 0 11-6.219-8.56" />
+    </svg>
+  </div>
+);
+
+export default function AccountLoginPage() {
+  return (
+    <Suspense fallback={<Spinner />}>
+      <LoginContent />
+    </Suspense>
   );
 }

@@ -1,12 +1,12 @@
 // src/app/dashboard/login/page.js
 "use client";
 
-import { useState }    from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import FlowerMark from "@/app/components/icons/FlowerMark";
 import { B }      from "@/lib/brand";
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams();
   // Guard against a redirect loop if ?redirect points back to login
   const rawRedirect  = searchParams.get("redirect") || "";
@@ -244,5 +244,19 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ background: B.bark }}>
+        <svg className="animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={B.orange} strokeWidth="2.5">
+          <path d="M21 12a9 9 0 11-6.219-8.56" />
+        </svg>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }
