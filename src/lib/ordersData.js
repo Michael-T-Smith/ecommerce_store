@@ -1,0 +1,137 @@
+﻿
+export const ORDER_STATUSES = [
+  { key: "pending",          label: "Pending",          color: "#F59E0B" },
+  { key: "confirmed",        label: "Confirmed",        color: "#3B82F6" },
+  { key: "preparing",        label: "Preparing",        color: "#8B5CF6" },
+  { key: "out_for_delivery", label: "Out for Delivery", color: "#C08FA3" },
+  { key: "delivered",        label: "Delivered",        color: "#22C55E" },
+  { key: "cancelled",        label: "Cancelled",        color: "#EF4444" },
+];
+
+// Status pipeline — which statuses can advance to which
+export const STATUS_NEXT = {
+  pending         : "confirmed",
+  confirmed       : "preparing",
+  preparing       : "out_for_delivery",
+  out_for_delivery: "delivered",
+  delivered       : null,
+  cancelled       : null,
+};
+
+// Reverse pipeline — admin/manager only backpedal
+export const STATUS_PREV = {
+  confirmed       : "pending",
+  preparing       : "confirmed",
+  out_for_delivery: "preparing",
+};
+
+export const ORDERS_MOCK = [
+  {
+    id: 1, orderNumber: "LF-2024-0001",
+    customerName: "Sarah Mitchell", customerEmail: "sarah.m@email.com", customerPhone: "(256) 555-1001",
+    items: [
+      { id: 1, name: "Classic Red Roses",  qty: 1, price: 52, size: "Standard" },
+      { id: 14, name: "Gift Basket — Blooms", qty: 1, price: 90, size: "Standard" },
+    ],
+    subtotal: 142, deliveryFee: 0, total: 142,
+    status: "delivered",
+    deliveryAddress: "412 Oak Street, Piedmont, AL 36272",
+    deliveryZone: "piedmont", deliveryDate: "2024-12-01", deliveryWindow: "morning",
+    noteMessage: "Happy Anniversary! Love you always.",
+    staffNotes: null,
+    stripePaymentId: "pi_mock_001",
+    createdAt: "2024-12-01T08:14:00Z",
+  },
+  {
+    id: 2, orderNumber: "LF-2024-0002",
+    customerName: "Marcus Webb", customerEmail: "mwebb@email.com", customerPhone: "(256) 555-1002",
+    items: [
+      { id: 5, name: "Tropical Paradise", qty: 1, price: 68, size: "Large" },
+    ],
+    subtotal: 68, deliveryFee: 12, total: 80,
+    status: "out_for_delivery",
+    deliveryAddress: "88 Hillside Drive, Anniston, AL 36201",
+    deliveryZone: "anniston", deliveryDate: "2024-12-03", deliveryWindow: "afternoon",
+    noteMessage: "Thinking of you.",
+    staffNotes: "Gate code: 4421",
+    stripePaymentId: "pi_mock_002",
+    createdAt: "2024-12-03T09:30:00Z",
+  },
+  {
+    id: 3, orderNumber: "LF-2024-0003",
+    customerName: "Linda Carver", customerEmail: "lcarver@email.com", customerPhone: "(256) 555-1003",
+    items: [
+      { id: 6, name: "Garden Centerpiece", qty: 2, price: 85, size: "Standard" },
+    ],
+    subtotal: 170, deliveryFee: 0, total: 170,
+    status: "preparing",
+    deliveryAddress: "27 Maple Ave, Piedmont, AL 36272",
+    deliveryZone: "piedmont", deliveryDate: "2024-12-03", deliveryWindow: "morning",
+    noteMessage: null,
+    staffNotes: "Refurbished items. Handle with care.",
+    stripePaymentId: "pi_mock_003",
+    createdAt: "2024-12-02T14:20:00Z",
+  },
+  {
+    id: 4, orderNumber: "LF-2024-0004",
+    customerName: "Derek Hollis", customerEmail: "d.hollis@email.com", customerPhone: "(256) 555-1004",
+    items: [
+      { id: 3, name: "Wildflower Mix",     qty: 1, price: 44, size: "Small"    },
+      { id: 8, name: "Succulent Collection", qty: 1, price: 42, size: "Standard" },
+    ],
+    subtotal: 86, deliveryFee: 0, total: 86,
+    status: "confirmed",
+    deliveryAddress: "315 Peach Tree Rd, Piedmont, AL 36272",
+    deliveryZone: "piedmont", deliveryDate: "2024-12-04", deliveryWindow: "afternoon",
+    noteMessage: "For mom's birthday!",
+    staffNotes: null,
+    stripePaymentId: "pi_mock_004",
+    createdAt: "2024-12-03T10:05:00Z",
+  },
+  {
+    id: 5, orderNumber: "LF-2024-0005",
+    customerName: "Patricia Dunn", customerEmail: "pdunn@email.com", customerPhone: "(256) 555-1005",
+    items: [
+      { id: 11, name: "Autumn Wreath", qty: 1, price: 78, size: "Large" },
+    ],
+    subtotal: 78, deliveryFee: 15, total: 93,
+    status: "pending",
+    deliveryAddress: "54 Ridge Road, Centre, AL 35960",
+    deliveryZone: "centre", deliveryDate: "2024-12-04", deliveryWindow: "morning",
+    noteMessage: null,
+    staffNotes: null,
+    stripePaymentId: "pi_mock_005",
+    createdAt: "2024-12-03T11:45:00Z",
+  },
+  {
+    id: 6, orderNumber: "LF-2024-0006",
+    customerName: "James Okafor", customerEmail: "jokafor@email.com", customerPhone: "(256) 555-1006",
+    items: [
+      { id: 1, name: "Classic Red Roses", qty: 1, price: 52, size: "Large" },
+    ],
+    subtotal: 52, deliveryFee: 12, total: 64,
+    status: "cancelled",
+    deliveryAddress: "190 Commerce Blvd, Anniston, AL 36201",
+    deliveryZone: "anniston", deliveryDate: "2024-12-02", deliveryWindow: "afternoon",
+    noteMessage: "Get well soon.",
+    staffNotes: "Customer requested cancellation — refunded via Stripe.",
+    stripePaymentId: "pi_mock_006",
+    createdAt: "2024-12-02T08:00:00Z",
+  },
+  {
+    id: 7, orderNumber: "LF-2024-0007",
+    customerName: "Renee Stanton", customerEmail: "rstanton@email.com", customerPhone: "(256) 555-1007",
+    items: [
+      { id: 2, name: "Sunflower Bundle",   qty: 2, price: 38, size: "Standard" },
+      { id: 15, name: "Dried Flower Bundle", qty: 1, price: 48, size: "Small"  },
+    ],
+    subtotal: 124, deliveryFee: 0, total: 124,
+    status: "confirmed",
+    deliveryAddress: "88 Elm Street, Piedmont, AL 36272",
+    deliveryZone: "piedmont", deliveryDate: "2024-12-04", deliveryWindow: "morning",
+    noteMessage: "Just because you're wonderful.",
+    staffNotes: null,
+    stripePaymentId: "pi_mock_007",
+    createdAt: "2024-12-03T13:20:00Z",
+  },
+];

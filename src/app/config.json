@@ -1,0 +1,31 @@
+{
+    "Metadata": {
+        "SEO": {
+            "title": "Enter Title of your company here",
+            "description":
+                "Enter a brief description of your company here. This will be used for SEO purposes and should include relevant keywords.",
+            "keywords": [
+                "keyword1",
+                "keyword2",
+                "keyword3"
+            ]
+        }
+    }, 
+    "business": {
+        "title": "Enter Name of your company here",
+        "Company Structure": {
+            "owners": [
+                "Owner 1 Name",
+                "Owner 2 Name"
+            ], 
+            "managers": [
+                "Manager 1 Name",
+                "Manager 2 Name"
+            ],
+            "employees": [
+                "Employee 1 Name",
+                "Employee 2 Name"
+            ]
+        }
+    }
+}

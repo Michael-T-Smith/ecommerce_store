@@ -1,65 +1,81 @@
-import Image from "next/image";
+﻿import pool           from "@/lib/db";
+import HomePageClient from "./HomePageClient";
 
-export default function Home() {
+export const metadata = {
+  title      : "BityBird Co — Handcrafted & Refurbished Finds",
+  description: "Handcrafted goods and lovingly refurbished finds. Shop unique, one-of-a-kind pieces — curated and shipped online.",
+};
+
+export const revalidate = 60;
+
+// Snake_case DB row → camelCase frontend item
+// Used for both featured and catalog items — same shape either way.
+function dbRowToItem(row) {
+  return {
+    id            : row.id,
+    sku           : row.sku,
+    name          : row.name,
+    description   : row.description   ?? "",
+    prices        : Array.isArray(row.prices) ? row.prices.map(Number) : [0],
+    category      : row.category,
+    tag           : row.tag           ?? null,
+    images        : Array.isArray(row.images) ? row.images : [],
+    sizes         : Array.isArray(row.sizes) ? row.sizes : [],
+    inStock       : Boolean(row.in_stock),
+    stockCount    : Number(row.stock_count  ?? 0),
+    featuredAccent: row.featured_accent     ?? "#C08FA3",
+  };
+}
+
+const ITEM_COLS = `
+  inv.id, inv.sku, inv.name, inv.description, inv.prices, inv.category, inv.tag,
+  inv.sizes, inv.stock_count, inv.in_stock, inv.featured_accent,
+  COALESCE(
+    json_agg(json_build_object('id', ii.id, 'path', ii.path)
+      ORDER BY ii.display_order ASC)
+    FILTER (WHERE ii.id IS NOT NULL), '[]'
+  ) AS images
+`;
+
+export default async function HomePage() {
+  let featuredItems = [];
+  let catalogItems  = [];
+
+  try {
+    // Both queries run in parallel — no sequential waterfall
+    const [featuredResult, catalogResult] = await Promise.all([
+      pool.query(
+        `SELECT ${ITEM_COLS}
+         FROM inventory inv
+         LEFT JOIN inventory_images ii ON ii.inventory_id = inv.id
+         WHERE inv.is_featured = TRUE AND inv.in_stock = TRUE
+         GROUP BY inv.id
+         ORDER BY inv.updated_at DESC
+         LIMIT 3`
+      ),
+      pool.query(
+        // In-stock items first, then out-of-stock — matches the old mock order.
+        // Limit 8 for the homepage preview strip.
+        `SELECT ${ITEM_COLS}
+         FROM inventory inv
+         LEFT JOIN inventory_images ii ON ii.inventory_id = inv.id
+         GROUP BY inv.id
+         ORDER BY inv.in_stock DESC, inv.category ASC, inv.name ASC
+         LIMIT 8`
+      ),
+    ]);
+
+    featuredItems = featuredResult.rows.map(dbRowToItem);
+    catalogItems  = catalogResult.rows.map(dbRowToItem);
+  } catch (err) {
+    // DB unreachable — homepage renders with empty sections rather than crashing
+    console.error("[HomePage] DB error:", err.message);
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <HomePageClient
+      featuredItems={featuredItems}
+      catalogItems={catalogItems}
+    />
   );
 }
