@@ -74,7 +74,7 @@ The application is deployed and accessible online.
 
 ### System Flow
 
-```text
+
 Customer
   → Browse Products
   → Add to Cart
@@ -83,18 +83,22 @@ Customer
   → Stripe Payment
   → Order Creation
   → Email Confirmation
-Deployment Architecture
+  
+# Deployment Architecture
+
 Client
   ↓
 Vercel (Next.js App)
   ↓
-Neon PostgreSQL
+Neon PostgreSQL //Optional Docker Configuration for local hosting.
 
 External Services:
 - Stripe (Payments)
 - Resend (Emails)
 - USPS API (Address Validation)
-Design Notes
+
+# Design Notes
+
 Cart system supports both guest and authenticated users
 Checkout includes address validation prior to payment processing
 System is designed to be reusable as a configurable ecommerce template
@@ -112,28 +116,29 @@ It was later migrated to managed services (Vercel + Neon) due to real-world oper
 
 The architecture remains portable and could be re-containerized if required.
 
-Current Limitations
-Payment processing is in Stripe test mode
-Limited production traffic testing
-No automated test suite
-Analytics system is partially implemented
-Template-based multi-business configuration is not fully completed
-Future Improvements
-Full production Stripe integration
-Expanded analytics dashboard
-Automated testing coverage
-Config-driven multi-business template system
-Improved observability and logging
-Enhanced inventory and reporting tools
-Summary
+# Current Limitations
+- Payment processing is in Stripe test mode
+- Limited production traffic testing
+- No automated test suite
+- Analytics system is partially implemented
+- Template-based multi-business configuration is not fully completed
+- Future Improvements
+- Full production Stripe integration
+- Expanded analytics dashboard
+- Automated testing coverage
+- Config-driven multi-business template system
+- Improved observability and logging
+- Enhanced inventory and reporting tools
+
+# Summary
 
 This project is a production-style ecommerce system with:
 
-Full checkout pipeline
-Payment integration
-Shipping validation
-Admin tooling
-Persistent data layer
-Cloud deployment infrastructure
+- Full checkout pipeline
+- Payment integration
+- Shipping validation
+- Admin tooling
+- Persistent data layer
+- Cloud deployment infrastructure
 
 It is designed to be both a functioning storefront and a reusable ecommerce foundation for small businesses. 
